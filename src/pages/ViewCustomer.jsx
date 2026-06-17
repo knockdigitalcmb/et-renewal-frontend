@@ -60,6 +60,23 @@ const ViewCustomer = () => {
                 <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.email || 'N/A'}</div>
               </div>
               
+              {/* Row 1.5 */}
+              <div className="flex border-b border-gray-100">
+                <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Platform</div>
+                <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">
+                  {customer.platform ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      {customer.platform}
+                    </span>
+                  ) : 'N/A'}
+                </div>
+              </div>
+              <div className="flex border-b border-gray-100">
+                {/* Empty cell for grid alignment since Email and Platform are now 3 items */}
+                <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Username</div>
+                <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.name}</div>
+              </div>
+              
               {/* Row 2 */}
               <div className="flex border-b border-gray-100">
                 <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Primary Mobile</div>

@@ -13,7 +13,7 @@ import {
 const EditCustomer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getCustomer, updateCustomer, deleteVehicle } = useCustomer();
+  const { getCustomer, updateCustomer, deleteVehicle, checkDuplicateUsername } = useCustomer();
   const { resources } = useResource();
   const activeResources = resources.filter(r => r.status === 'Active');
   
@@ -40,6 +40,7 @@ const EditCustomer = () => {
         altMobile3: data.altMobile3 || '',
         email: data.email,
         location: data.location,
+        platform: data.platform || '',
         leadClosureBy: data.leadClosureBy
       });
     } else {
@@ -47,8 +48,19 @@ const EditCustomer = () => {
     }
   }, [id, getCustomer, navigate, reset]);
 
+  const platformWatch = watch('platform') || '';
+  const nameWatch = watch('name') || '';
+
+  const isDuplicateUsername = React.useMemo(() => {
+    return checkDuplicateUsername(platformWatch, nameWatch, id);
+  }, [platformWatch, nameWatch, id, checkDuplicateUsername]);
+
   const onSubmit = async (data) => {
     const trimmedData = trimData(data);
+    if (checkDuplicateUsername(trimmedData.platform, trimmedData.name, id)) {
+      alert(`Error: Username "${trimmedData.name}" already exists in platform "${trimmedData.platform}".`);
+      return;
+    }
     await updateCustomer(id, trimmedData);
     setCustomer({ ...customer, ...trimmedData });
     alert('Owner updated successfully');
@@ -70,6 +82,7 @@ const EditCustomer = () => {
 
   const getInputClass = (fieldName) => {
     const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors";
+    if (fieldName === 'name' && isDuplicateUsername) return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50`;
     if (errors[fieldName]) return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50`;
     if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50`;
     return `${baseClass} border-gray-200 focus:border-blue-500 focus:ring-blue-500`;
@@ -108,7 +121,23 @@ const EditCustomer = () => {
             {/* Edit Owner Details Section */}
             <h4 className="text-[1rem] font-bold text-gray-800 mb-4">Edit Owner Details</h4>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Platform *</label>
+                  <select 
+                    {...register('platform', { required: 'Platform is required' })}
+                    className={getInputClass('platform')}
+                  >
+                    <option value="">Select Platform</option>
+                    <option value="Tracco">Tracco</option>
+                    <option value="EagleIndia">EagleIndia</option>
+                    <option value="Treckin">Treckin</option>
+                    <option value="GPS Monitor">GPS Monitor</option>
+                    <option value="Onequik">Onequik</option>
+                    <option value="Nowilup">Nowilup</option>
+                  </select>
+                  {errors.platform && <p className="text-red-500 text-xs mt-1">{errors.platform.message}</p>}
+                </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1">Customer Name *</label>
                   <input 
@@ -122,6 +151,9 @@ const EditCustomer = () => {
                     className={getInputClass('name')}
                   />
                   {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+                  {isDuplicateUsername && (
+                    <p className="text-red-500 text-xs mt-1">Username already exists in selected platform</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1">Mobile Number *</label>
@@ -162,7 +194,7 @@ const EditCustomer = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1">Alternate Mobile 1</label>
                   <input 
@@ -236,8 +268,8 @@ const EditCustomer = () => {
               <div className="pt-2">
                 <button 
                   type="submit" 
-                  disabled={Object.keys(errors).length > 0}
-                  className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${Object.keys(errors).length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#4a6cf7] hover:bg-[#3a5bd9]'}`}
+                  disabled={Object.keys(errors).length > 0 || isDuplicateUsername}
+                  className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${(Object.keys(errors).length > 0 || isDuplicateUsername) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#4a6cf7] hover:bg-[#3a5bd9]'}`}
                 >
                   Update Owner
                 </button>

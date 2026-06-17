@@ -42,6 +42,7 @@ export const CustomerProvider = ({ children }) => {
           altMobile3: data.altMobile3 || '',
           email: data.email || '',
           location: data.location || '-',
+          platform: data.platform || '',
           leadClosureBy: data.leadClosureBy || '-',
           totalVehicles: 1,
           pendingAmount: data.pendingAmount > 0 ? data.pendingAmount : 0,
@@ -191,6 +192,18 @@ export const CustomerProvider = ({ children }) => {
     return false;
   };
 
+  const checkDuplicateUsername = (platform, username, excludeCustomerId = null) => {
+    if (!platform || !username) return false;
+    const lowerPlatform = platform.toLowerCase().trim();
+    const lowerUsername = username.toLowerCase().trim();
+
+    return customers.some(c => 
+      c.platform && c.platform.toLowerCase().trim() === lowerPlatform &&
+      c.name && c.name.toLowerCase().trim() === lowerUsername &&
+      c.id !== excludeCustomerId?.toString()
+    );
+  };
+
   return (
     <CustomerContext.Provider value={{ 
       customers, 
@@ -205,7 +218,8 @@ export const CustomerProvider = ({ children }) => {
       updateVehicle,
       deleteVehicle,
       addVehicle,
-      checkDuplicateVehicle
+      checkDuplicateVehicle,
+      checkDuplicateUsername
     }}>
       {children}
     </CustomerContext.Provider>

@@ -19,6 +19,8 @@ import ImportCustomers from './pages/ImportCustomers';
 import { ResourceProvider } from './context/ResourceContext';
 import { CustomerProvider } from './context/CustomerContext';
 import { LayoutProvider } from './context/LayoutContext';
+import { VehicleTypeProvider } from './context/VehicleTypeContext';
+import VehicleTypeMaster from './pages/VehicleTypeMaster';
 
 function AppLayout() {
   return (
@@ -41,6 +43,7 @@ function AppLayout() {
           <Route path="/resources/add" element={<AddResource />} />
           <Route path="/resources/view/:id" element={<ViewResource />} />
           <Route path="/resources/edit/:id" element={<EditResource />} />
+          <Route path="/master/vehicle-types" element={<VehicleTypeMaster />} />
         </Routes>
       </div>
     </div>
@@ -54,11 +57,13 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/*" element={
           <LayoutProvider>
-            <ResourceProvider>
-              <CustomerProvider>
-                <AppLayout />
-              </CustomerProvider>
-            </ResourceProvider>
+            <VehicleTypeProvider>
+              <ResourceProvider>
+                <CustomerProvider>
+                  <AppLayout />
+                </CustomerProvider>
+              </ResourceProvider>
+            </VehicleTypeProvider>
           </LayoutProvider>
         } />
       </Routes>
