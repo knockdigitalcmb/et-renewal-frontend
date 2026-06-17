@@ -11,6 +11,18 @@ const CustomerList = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const totalCustomersCount = customers.length;
+  let pendingCustomersCount = 0;
+  let totalPendingAmount = 0;
+
+  customers.forEach(c => {
+    const totalPending = c.vehicles?.reduce((sum, v) => sum + (parseFloat(v.pendingAmount) || 0), 0) || 0;
+    if (totalPending > 0) {
+      pendingCustomersCount++;
+      totalPendingAmount += totalPending;
+    }
+  });
+
   // Parse query params
   const searchParams = new URLSearchParams(location.search);
   const paymentFilterParam = searchParams.get('payment');
@@ -74,11 +86,51 @@ const CustomerList = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto">
+      <main className="flex-1 p-6 overflow-y-auto">
+        <div className="max-w-[1400px] mx-auto bg-white rounded-md shadow-sm border border-gray-100 p-6">
+          {/* Header section */}
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+            <h2 className="text-lg font-bold text-gray-800">Customer List</h2>
+            <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
+              <button 
+                onClick={() => navigate('/customers/add')}
+                className="bg-blue-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-600 transition-colors shadow-sm"
+              >
+                + New Customer / Vehicle
+              </button>
+              <button 
+                onClick={() => navigate('/customers/import')}
+                className="bg-[#2ecc71] text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-600 transition-colors shadow-sm"
+              >
+                + Import Customers
+              </button>
+              <button 
+                className="bg-[#3498db] text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-600 transition-colors shadow-sm"
+              >
+                Download Sample Excel
+              </button>
+            </div>
+          </div>
+          
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="bg-[#f8f9fa] rounded-md p-6 text-center border border-gray-100 shadow-sm">
+              <h3 className="text-gray-700 font-medium mb-3">Total Customers</h3>
+              <p className="text-2xl font-bold text-gray-800">{totalCustomersCount}</p>
+            </div>
+            <div className="bg-[#fef9c3] rounded-md p-6 text-center shadow-sm">
+              <h3 className="text-[#854d0e] font-medium mb-3">Pending Customers</h3>
+              <p className="text-2xl font-bold text-[#854d0e]">{pendingCustomersCount}</p>
+            </div>
+            <div className="bg-[#fce8e8] rounded-md p-6 text-center shadow-sm">
+              <h3 className="text-[#be123c] font-medium mb-3">Total Pending Amount</h3>
+              <p className="text-2xl font-bold text-[#be123c]">₹{totalPendingAmount.toFixed(2)}</p>
+            </div>
+          </div>
+
           <CustomerFilters onSearch={handleSearch} onFilterChange={handleFilterChange} />
           
           <CustomerTable 
