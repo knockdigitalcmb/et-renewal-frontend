@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3b82f6; /* blue-500 */
+}
+
+/* Base styles for html and body */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure all select dropdowns are responsive and do not overflow their containers */
+select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+}
+
+/* Parent container fixes as requested */
+.grid > div {
+  min-width: 0;
+  position: relative;
+  overflow: visible;
+}
