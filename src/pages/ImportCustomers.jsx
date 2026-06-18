@@ -2,18 +2,23 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { useCustomer } from '../context/CustomerContext';
+import { useModal } from '../context/ModalContext';
 import * as XLSX from 'xlsx';
 import { regexPatterns, validatePastDate } from '../utils/validationUtils';
 
 const ImportCustomers = () => {
   const navigate = useNavigate();
   const { customers, addCustomer } = useCustomer();
+  const { showModal } = useModal();
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
 
   const handleImport = async (e) => {
     e.preventDefault();
-    if (!file) return alert('Please choose an excel file to import.');
+    if (!file) {
+      showModal({ type: 'warning', title: 'File Required', message: 'Please choose an excel file to import.' });
+      return;
+    }
     
     setLoading(true);
     
@@ -81,14 +86,21 @@ const ImportCustomers = () => {
         }
         
         setLoading(false);
-        alert(`Import Successful!\n${count} records imported.\n${skipped} duplicate or invalid records skipped.`);
-        navigate('/customers');
+        showModal({
+          type: 'success',
+          title: 'Import Successful',
+          message: `${count} records imported.\n${skipped} duplicate or invalid records skipped.`,
+          buttons: [
+            { text: 'View Customers', style: 'primary', onClick: () => navigate('/customers') },
+            { text: 'Close', style: 'secondary' }
+          ]
+        });
       };
       
       reader.readAsArrayBuffer(file);
     } catch (err) {
       console.error(err);
-      alert('Error parsing the file.');
+      showModal({ type: 'error', title: 'Import Failed', message: 'Error parsing the file.' });
       setLoading(false);
     }
   };

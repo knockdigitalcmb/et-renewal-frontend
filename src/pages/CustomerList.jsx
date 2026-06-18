@@ -4,10 +4,12 @@ import Header from '../components/Header';
 import CustomerFilters from '../components/CustomerFilters';
 import CustomerTable from '../components/CustomerTable';
 import { useCustomer } from '../context/CustomerContext';
+import { useModal } from '../context/ModalContext';
 import { getExpiringCustomers } from '../utils/customerUtils';
 
 const CustomerList = () => {
   const { customers, deleteCustomer } = useCustomer();
+  const { showModal } = useModal();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -80,20 +82,32 @@ const CustomerList = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this customer?")) {
-      await deleteCustomer(id);
-    }
+    showModal({
+      type: 'confirm',
+      title: 'Delete Customer',
+      message: 'Are you sure you want to delete this customer? All their vehicles will also be deleted.',
+      buttons: [
+        { text: 'Cancel', style: 'secondary' },
+        { 
+          text: 'Delete', 
+          style: 'danger', 
+          onClick: async () => {
+            await deleteCustomer(id);
+          }
+        }
+      ]
+    });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors duration-200">
       <Header />
       
       <main className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto bg-white rounded-md shadow-sm border border-gray-100 p-6">
+        <div className="max-w-[1400px] mx-auto bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors duration-200">
           {/* Header section */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-gray-800">Customer List</h2>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-white">Customer List</h2>
             <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
               <button 
                 onClick={() => navigate('/customers/add')}
@@ -117,17 +131,17 @@ const CustomerList = () => {
           
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-[#f8f9fa] rounded-md p-6 text-center border border-gray-100 shadow-sm">
-              <h3 className="text-gray-700 font-medium mb-3">Total Customers</h3>
-              <p className="text-2xl font-bold text-gray-800">{totalCustomersCount}</p>
+            <div className="bg-[#f8f9fa] dark:bg-gray-700 rounded-md p-6 text-center border border-gray-100 dark:border-gray-600 shadow-sm transition-colors duration-200">
+              <h3 className="text-gray-700 dark:text-gray-300 font-medium mb-3">Total Customers</h3>
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">{totalCustomersCount}</p>
             </div>
-            <div className="bg-[#fef9c3] rounded-md p-6 text-center shadow-sm">
-              <h3 className="text-[#854d0e] font-medium mb-3">Pending Customers</h3>
-              <p className="text-2xl font-bold text-[#854d0e]">{pendingCustomersCount}</p>
+            <div className="bg-[#fef9c3] dark:bg-yellow-900/20 rounded-md p-6 text-center shadow-sm transition-colors duration-200 border border-transparent dark:border-yellow-900/50">
+              <h3 className="text-[#854d0e] dark:text-yellow-500 font-medium mb-3">Pending Customers</h3>
+              <p className="text-2xl font-bold text-[#854d0e] dark:text-yellow-400">{pendingCustomersCount}</p>
             </div>
-            <div className="bg-[#fce8e8] rounded-md p-6 text-center shadow-sm">
-              <h3 className="text-[#be123c] font-medium mb-3">Total Pending Amount</h3>
-              <p className="text-2xl font-bold text-[#be123c]">₹{totalPendingAmount.toFixed(2)}</p>
+            <div className="bg-[#fce8e8] dark:bg-red-900/20 rounded-md p-6 text-center shadow-sm transition-colors duration-200 border border-transparent dark:border-red-900/50">
+              <h3 className="text-[#be123c] dark:text-red-400 font-medium mb-3">Total Pending Amount</h3>
+              <p className="text-2xl font-bold text-[#be123c] dark:text-red-300">₹{totalPendingAmount.toFixed(2)}</p>
             </div>
           </div>
 
@@ -144,21 +158,21 @@ const CustomerList = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-between items-center mt-6">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} of {filteredCustomers.length} entries
               </span>
               <div className="flex space-x-2">
                 <button 
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded text-sm disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
                 >
                   Previous
                 </button>
                 <button 
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded text-sm disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
                 >
                   Next
                 </button>

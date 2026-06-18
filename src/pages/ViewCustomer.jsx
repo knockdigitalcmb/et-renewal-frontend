@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCustomer } from '../context/CustomerContext';
 import Header from '../components/Header';
 import { FiRefreshCw, FiEdit } from 'react-icons/fi';
+import { useSettings } from '../context/SettingsContext';
 
 const ViewCustomer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getCustomer } = useCustomer();
+  const { formatDate } = useSettings();
   const [customer, setCustomer] = useState(null);
 
   useEffect(() => {
@@ -19,14 +21,14 @@ const ViewCustomer = () => {
   if (!customer) return null;
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 flex flex-col font-sans transition-colors duration-200">
       <Header />
       <main className="flex-1 p-6">
-        <div className="bg-white rounded shadow-sm mx-auto border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded shadow-sm mx-auto border border-gray-200 dark:border-gray-700 transition-colors duration-200">
           
           {/* Header Section */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border-b border-gray-100 gap-4">
-            <h3 className="text-[1.1rem] font-bold text-gray-800">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border-b border-gray-100 dark:border-gray-700 gap-4">
+            <h3 className="text-[1.1rem] font-bold text-gray-800 dark:text-white">
               Customer Details: {customer.name}
             </h3>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
@@ -47,94 +49,96 @@ const ViewCustomer = () => {
 
           <div className="p-5">
             {/* Owner Information */}
-            <h4 className="text-[1rem] font-bold text-gray-800 mb-4">Owner Information</h4>
+            <h4 className="text-[1rem] font-bold text-gray-800 dark:text-gray-200 mb-4">Owner Information</h4>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0 mb-8 border-t border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0 mb-8 border-t border-gray-100 dark:border-gray-700">
               {/* Row 1 */}
-              <div className="flex border-b border-gray-100">
-                <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Name</div>
-                <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.name}</div>
+              <div className="flex border-b border-gray-100 dark:border-gray-700">
+                <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Name</div>
+                <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.name}</div>
               </div>
-              <div className="flex border-b border-gray-100">
-                <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Email</div>
-                <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.email || 'N/A'}</div>
+              <div className="flex border-b border-gray-100 dark:border-gray-700">
+                <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Email</div>
+                <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.email || 'N/A'}</div>
               </div>
               
               {/* Row 2 */}
-              <div className="flex border-b border-gray-100">
-                <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Primary Mobile</div>
-                <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.mobile}</div>
+              <div className="flex border-b border-gray-100 dark:border-gray-700">
+                <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Primary Mobile</div>
+                <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.mobile}</div>
               </div>
-              <div className="flex border-b border-gray-100">
-                <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Location</div>
-                <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.location}</div>
+              <div className="flex border-b border-gray-100 dark:border-gray-700">
+                <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Location</div>
+                <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.location}</div>
               </div>
               
               {/* Alternate Mobiles */}
               {customer.altMobile1 && (
-                <div className="flex border-b border-gray-100">
-                  <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Alternate Mobile 1</div>
-                  <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.altMobile1}</div>
+                <div className="flex border-b border-gray-100 dark:border-gray-700">
+                  <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Alternate Mobile 1</div>
+                  <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.altMobile1}</div>
                 </div>
               )}
               {customer.altMobile2 && (
-                <div className="flex border-b border-gray-100">
-                  <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Alternate Mobile 2</div>
-                  <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.altMobile2}</div>
+                <div className="flex border-b border-gray-100 dark:border-gray-700">
+                  <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Alternate Mobile 2</div>
+                  <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.altMobile2}</div>
                 </div>
               )}
               {customer.altMobile3 && (
-                <div className="flex border-b border-gray-100">
-                  <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Alternate Mobile 3</div>
-                  <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.altMobile3}</div>
+                <div className="flex border-b border-gray-100 dark:border-gray-700">
+                  <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Alternate Mobile 3</div>
+                  <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.altMobile3}</div>
                 </div>
               )}
 
-              <div className="flex border-b border-gray-100">
-                <div className="w-1/3 bg-[#f8f9fa] p-3 text-[13px] font-semibold text-gray-600 flex items-center">Lead Closure By</div>
-                <div className="w-2/3 p-3 text-[14px] text-gray-800 flex items-center">{customer.leadClosureBy}</div>
+              <div className="flex border-b border-gray-100 dark:border-gray-700">
+                <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Lead Closure By</div>
+                <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.leadClosureBy}</div>
               </div>
             </div>
 
             {/* Vehicle List */}
-            <h4 className="text-[1rem] font-bold text-gray-800 mb-4">Vehicle List</h4>
+            <h4 className="text-[1rem] font-bold text-gray-800 dark:text-gray-200 mb-4">Vehicle List</h4>
             <div className="overflow-x-auto w-full">
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
-                  <tr className="bg-[#f8f9fa] border-t border-b border-gray-100">
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Vehicle Number</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Vehicle Type</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">IMEI</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">SIM Number</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Install Date</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Validity</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Expiry Date</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Pending Amount</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Actions</th>
+                  <tr className="bg-[#f8f9fa] dark:bg-gray-800/50 border-t border-b border-gray-100 dark:border-gray-700">
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Vehicle Number</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Platform</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Vehicle Type</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">IMEI</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">SIM Number</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Install Date</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Validity</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Expiry Date</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending Amount</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {customer.vehicles && customer.vehicles.length > 0 ? (
                     customer.vehicles.map((vehicle, index) => (
-                      <tr key={vehicle.id || index} className="border-b border-gray-100">
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.vehicleNo}</td>
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.vehicleType || 'Car'}</td>
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.imei}</td>
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.simNumber}</td>
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.installDate}</td>
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.validity} M</td>
+                      <tr key={vehicle.id || index} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.vehicleNo}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.platform || '-'}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.vehicleType || 'Car'}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.imei}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.simNumber}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{formatDate(vehicle.installDate)}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.validity} M</td>
                         <td className="p-3">
-                          <span className="bg-[#d4edda] text-[#155724] px-2 py-1 rounded text-[12px] font-medium">
-                            {vehicle.expiryDate}
+                          <span className="bg-[#d4edda] dark:bg-green-900/30 text-[#155724] dark:text-green-400 px-2 py-1 rounded text-[12px] font-medium tracking-wide">
+                            {formatDate(vehicle.expiryDate)}
                           </span>
                         </td>
                         <td className="p-3">
                           {vehicle.pendingAmount <= 0 ? (
-                            <span className="bg-[#d4edda] text-[#155724] px-2 py-1 rounded text-[12px] font-medium">
+                            <span className="bg-[#d4edda] dark:bg-green-900/30 text-[#155724] dark:text-green-400 px-2 py-1 rounded text-[12px] font-medium tracking-wide">
                               Paid
                             </span>
                           ) : (
-                            <span className="text-red-500 font-medium text-[14px]">
+                            <span className="text-red-500 dark:text-red-400 font-medium text-[14px]">
                               ₹{vehicle.pendingAmount}
                             </span>
                           )}
@@ -159,7 +163,7 @@ const ViewCustomer = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="9" className="p-4 text-center text-sm text-gray-500">No vehicles found.</td>
+                      <td colSpan="10" className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No vehicles found.</td>
                     </tr>
                   )}
                 </tbody>

@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useCustomer } from '../context/CustomerContext';
 import { useResource } from '../context/ResourceContext';
+import { useVehicleType } from '../context/VehicleTypeContext';
+import { useModal } from '../context/ModalContext';
 import { useNavigate } from 'react-router-dom';
 import {
   restrictName, restrictAlphabetsSpaces, restrictAlphanumeric, restrictNumbers, preventManualTyping,
@@ -11,9 +13,12 @@ import {
 
 const AddCustomer = () => {
   const navigate = useNavigate();
+  const { showModal } = useModal();
   const { addCustomer, addVehicle, updateCustomer, customers, checkDuplicateVehicle } = useCustomer();
   const { resources } = useResource();
+  const { vehicleTypes } = useVehicleType();
   const activeResources = resources.filter(r => r.status === 'Active');
+  const activeVehicleTypes = vehicleTypes.filter(vt => vt.status === 'Active');
   
   const [notesLength, setNotesLength] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -120,23 +125,26 @@ const AddCustomer = () => {
     
     // Validate uniqueness
     if (checkDuplicateVehicle('vehicleNo', trimmedData.vehicleNumber)) {
-      alert(`Error: Vehicle Number "${trimmedData.vehicleNumber}" is already registered to another customer.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `Vehicle Number "${trimmedData.vehicleNumber}" is already registered to another customer.` });
       return;
     }
     if (checkDuplicateVehicle('imei', trimmedData.imeiNumber)) {
-      alert(`Error: IMEI Number "${trimmedData.imeiNumber}" is already registered.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `IMEI Number "${trimmedData.imeiNumber}" is already registered.` });
       return;
     }
     if (checkDuplicateVehicle('simNumber', trimmedData.simNumber)) {
-      alert(`Error: SIM Number "${trimmedData.simNumber}" is already registered.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `SIM Number "${trimmedData.simNumber}" is already registered.` });
       return;
     }
 
     // Uniqueness Check for new customers
     if (!selectedExistingCustomer) {
-      const exactMatch = customers.find(c => c.name.toLowerCase() === trimmedData.UserName.toLowerCase());
+      const exactMatch = customers.find(c => 
+        c.name.toLowerCase() === trimmedData.UserName.toLowerCase() &&
+        c.vehicles?.some(v => v.platform === trimmedData.platform)
+      );
       if (exactMatch) {
-        alert("Existing customer found. Select from dropdown to add vehicle.");
+        showModal({ type: 'error', title: 'Duplicate Customer', message: "Existing customer found on this platform. Select from dropdown to add vehicle." });
         return;
       }
     }
@@ -158,6 +166,7 @@ const AddCustomer = () => {
 
       const res = await addVehicle(selectedExistingCustomer.id, {
         vehicleNo: trimmedData.vehicleNumber || '-',
+        platform: trimmedData.platform || '',
         vehicleType: trimmedData.vehicleType || '',
         imei: trimmedData.imeiNumber || '',
         simNumber: trimmedData.simNumber || '',
@@ -175,25 +184,41 @@ const AddCustomer = () => {
         expiryDate: trimmedData.expiryDate || '-'
       });
       if (res.success) {
-        alert("Vehicle added to existing customer successfully!");
-        navigate(`/customers/edit/${selectedExistingCustomer.id}`);
+        showModal({
+          type: 'success',
+          title: 'Success',
+          message: 'Vehicle added to existing customer successfully!',
+          buttons: [
+            { text: 'View Customer', style: 'primary', onClick: () => navigate(`/customers/edit/${selectedExistingCustomer.id}`) },
+            { text: 'Add Another', onClick: () => handleReset() },
+            { text: 'Close', style: 'secondary' }
+          ]
+        });
       }
       return;
     }
 
     const res = await addCustomer(finalData);
     if (res.success) {
-      alert("Customer saved successfully!");
-      navigate('/customers');
+      showModal({
+        type: 'success',
+        title: 'Success',
+        message: 'Customer & Vehicle saved successfully!',
+        buttons: [
+          { text: 'View Customers', style: 'primary', onClick: () => navigate('/customers') },
+          { text: 'Add Another', onClick: () => handleReset() },
+          { text: 'Close', style: 'secondary' }
+        ]
+      });
     }
   };
 
   const onError = (errors) => {
     const errorMessages = Object.values(errors).map(e => e.message).filter(Boolean);
     if (errorMessages.length > 0) {
-      alert(`Validation Errors:\n- ${errorMessages.join('\n- ')}`);
+      showModal({ type: 'error', title: 'Validation Error', message: `Please fix the following errors:\n- ${errorMessages.join('\n- ')}` });
     } else {
-      alert("Please fill all required fields correctly.");
+      showModal({ type: 'error', title: 'Validation Error', message: "Please fill all required fields correctly." });
     }
   };
 
@@ -203,7 +228,7 @@ const AddCustomer = () => {
   };
 
   const InputLabel = ({ label, required, isAuto }) => (
-    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
       {label} {required && '*'} {isAuto && '- Auto'}
     </label>
   );
@@ -214,18 +239,18 @@ const AddCustomer = () => {
   };
 
   const getInputClass = (fieldName) => {
-    const baseClass = "w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors";
-    if (errors[fieldName]) return `${baseClass} border-red-500 focus:ring-red-500 bg-red-50`;
-    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 focus:ring-green-500 bg-green-50`;
+    const baseClass = "w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200";
+    if (errors[fieldName]) return `${baseClass} border-red-500 dark:border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/20`;
+    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 dark:border-green-500 focus:ring-green-500 bg-green-50 dark:bg-green-900/20`;
     return `${baseClass} border-gray-200 focus:ring-blue-500`;
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f3f5] flex flex-col p-8">
+    <div className="min-h-screen bg-[#f1f3f5] dark:bg-gray-900 flex flex-col p-8 transition-colors duration-200">
       
       {/* Header */}
-      <div className="flex justify-between items-center mb-6 max-w-[1400px] mx-auto w-full bg-white p-6 rounded-md shadow-sm">
-        <h2 className="text-lg font-bold text-gray-800">Add New Customer / Vehicle</h2>
+      <div className="flex justify-between items-center mb-6 max-w-[1400px] mx-auto w-full bg-white dark:bg-gray-800 p-6 rounded-md shadow-sm transition-colors duration-200">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Add New Customer / Vehicle</h2>
         <button 
           onClick={() => navigate('/customers')}
           className="bg-[#3498db] hover:bg-[#2980b9] text-white px-5 py-2 rounded font-medium text-sm transition-colors shadow-sm"
@@ -235,12 +260,12 @@ const AddCustomer = () => {
       </div>
 
       {/* Main Form Card */}
-      <div className="bg-white rounded-md shadow-sm max-w-[1400px] mx-auto w-full p-8 border border-gray-100">
+      <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm max-w-[1400px] mx-auto w-full p-8 border border-gray-100 dark:border-gray-700 transition-colors duration-200">
         <form onSubmit={handleSubmit(onSubmit, onError)}>
           
           {/* Owner Details */}
           <div className="mb-8 relative" ref={dropdownRef}>
-            <h3 className="text-sm font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
               {selectedExistingCustomer ? (
                 <span className="text-[#3498db]">Owner Details (Existing Customer Selected)</span>
               ) : (
@@ -292,7 +317,7 @@ const AddCustomer = () => {
                   })}
                   onKeyDown={restrictNumbers}
                   onPaste={pasteNumbers}
-                  className={`${getInputClass('mobileNumber')} ${selectedExistingCustomer ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  className={`${getInputClass('mobileNumber')} ${selectedExistingCustomer ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : ''}`}
                 />
                 <ErrorMsg error={errors.mobileNumber} />
               </div>
@@ -304,7 +329,7 @@ const AddCustomer = () => {
                   {...register('email', {
                     pattern: { value: /^\S+@\S+\.\S+$/i, message: 'Invalid email format' }
                   })}
-                  className={`${getInputClass('email')} ${selectedExistingCustomer ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  className={`${getInputClass('email')} ${selectedExistingCustomer ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : ''}`}
                 />
                 <ErrorMsg error={errors.email} />
               </div>
@@ -319,7 +344,7 @@ const AddCustomer = () => {
                   })}
                   onKeyDown={restrictAlphabetsSpaces}
                   onPaste={pasteAlphabetsSpaces}
-                  className={`${getInputClass('location')} ${selectedExistingCustomer ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  className={`${getInputClass('location')} ${selectedExistingCustomer ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed' : ''}`}
                 />
                 <ErrorMsg error={errors.location} />
               </div>
@@ -384,7 +409,7 @@ const AddCustomer = () => {
 
           {/* Vehicle & Financial Details */}
           <div className="mb-8">
-            <h3 className="text-sm font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Vehicle & Financial Details</h3>
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">Vehicle & Financial Details</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div>
@@ -402,17 +427,34 @@ const AddCustomer = () => {
                 <ErrorMsg error={errors.vehicleNumber} />
               </div>
               <div>
+                <InputLabel label="Platform" required />
+                <select 
+                  {...register('platform', { required: 'Platform is required' })}
+                  className={getInputClass('platform')}
+                >
+                  <option value="">Select</option>
+                  <option value="Tracco">Tracco</option>
+                  <option value="EagleIndia">EagleIndia</option>
+                  <option value="Trackin">Trackin</option>
+                  <option value="GPS Monitor">GPS Monitor</option>
+                  <option value="OneQlik">OneQlik</option>
+                  <option value="Navi lap">Navi lap</option>
+                </select>
+                <ErrorMsg error={errors.platform} />
+              </div>
+              <div>
                 <InputLabel label="Vehicle Type" required />
-                <input 
-                  type="text" 
-                  {...register('vehicleType', { 
-                    required: 'Vehicle Type is required',
-                    pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
-                  })}
-                  onKeyDown={restrictAlphabetsSpaces}
-                  onPaste={pasteAlphabetsSpaces}
+                <select 
+                  {...register('vehicleType', { required: 'Please select Vehicle Type' })}
                   className={getInputClass('vehicleType')}
-                />
+                >
+                  <option value="">Select</option>
+                  {activeVehicleTypes.map(vt => (
+                    <option key={vt.id} value={vt.name}>
+                      {vt.name}
+                    </option>
+                  ))}
+                </select>
                 <ErrorMsg error={errors.vehicleType} />
               </div>
               <div>
@@ -494,7 +536,7 @@ const AddCustomer = () => {
                   type="text" 
                   readOnly
                   value={totalPaymentReceived}
-                  className="w-full px-3 py-2 border border-gray-200 rounded bg-gray-100 text-gray-500 cursor-not-allowed text-sm font-semibold"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-semibold transition-colors"
                 />
               </div>
             </div>
@@ -520,7 +562,7 @@ const AddCustomer = () => {
                   type="text" 
                   readOnly
                   value={pendingAmount}
-                  className="w-full px-3 py-2 border border-gray-200 rounded bg-gray-100 text-gray-500 cursor-not-allowed text-sm font-semibold"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-semibold transition-colors"
                 />
               </div>
               <div>
@@ -567,7 +609,7 @@ const AddCustomer = () => {
 
           {/* Installation Details */}
           <div className="mb-8">
-            <h3 className="text-sm font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Installation Details</h3>
+            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">Installation Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div>
                 <InputLabel label="Installation Person" required />
@@ -644,7 +686,7 @@ const AddCustomer = () => {
                   type="date" 
                   {...register('expiryDate')}
                   readOnly
-                  className="w-full px-3 py-2 border border-gray-200 rounded bg-gray-100 text-gray-500 cursor-not-allowed text-sm font-semibold"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-semibold transition-colors"
                 />
               </div>
             </div>
@@ -663,7 +705,7 @@ const AddCustomer = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 border-t border-gray-100 pt-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 border-t border-gray-100 dark:border-gray-700 pt-6">
             <button 
               type="submit"
               disabled={Object.keys(errors).length > 0}

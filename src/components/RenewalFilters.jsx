@@ -8,26 +8,26 @@ const RenewalFilters = ({ onSearch, onExport, onDateRangeChange }) => {
           type="text" 
           placeholder="Search Customer or Vehicle No..." 
           onChange={(e) => onSearch(e.target.value)}
-          className="w-full md:max-w-[300px] px-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-500"
+          className="w-full md:max-w-[300px] px-3 py-2 border border-gray-200 dark:border-gray-700 rounded text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 transition-colors"
         />
         <div className="flex flex-col md:flex-row gap-3 md:space-x-3">
           <div className="flex items-center space-x-2">
-          <label className="text-sm text-gray-600">From:</label>
+          <label className="text-sm text-gray-600 dark:text-gray-400">From:</label>
           <input 
             type="date" 
             onChange={(e) => onDateRangeChange('from', e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>
         <div className="flex items-center space-x-2">
-          <label className="text-sm text-gray-600">To:</label>
+          <label className="text-sm text-gray-600 dark:text-gray-400">To:</label>
           <input 
             type="date" 
             onChange={(e) => onDateRangeChange('to', e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>
-          <select className="w-full md:w-auto px-3 py-2 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:border-blue-500">
+          <select className="w-full md:w-auto px-3 py-2 border border-gray-200 dark:border-gray-700 rounded text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 transition-colors">
             <option>All Payment Modes</option>
                   <option value="ET Gpay">ET Gpay</option>
                   <option value="ET Phonepe">ET Phonepe</option>
@@ -45,7 +45,7 @@ const RenewalFilters = ({ onSearch, onExport, onDateRangeChange }) => {
                   <option value="Cash">Cash</option>
                   <option value="CC Payment Gateway">CC Payment Gateway</option>
           </select>
-          <select className="w-full md:w-auto px-3 py-2 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:border-blue-500">
+          <select className="w-full md:w-auto px-3 py-2 border border-gray-200 dark:border-gray-700 rounded text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 transition-colors">
             <option>All Validity</option>
               <option value="1 Month">1 Month</option>
                   <option value="3 Months">3 Months</option>

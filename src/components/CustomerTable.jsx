@@ -1,20 +1,23 @@
 import React from 'react';
 import ActionButtons from './ActionButtons';
+import { useSettings } from '../context/SettingsContext';
 
 const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
+  const { formatDate } = useSettings();
+
   if (!customers || customers.length === 0) {
     return (
-      <div className="bg-white rounded-md border border-gray-100 p-8 text-center text-gray-500 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400 shadow-sm transition-colors duration-200">
         No customers found.
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-md border border-gray-100 overflow-x-auto shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-700 overflow-x-auto shadow-sm transition-colors duration-200">
       <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1000px]">
         <thead>
-          <tr className="bg-gray-50/50 text-gray-500 text-sm border-b border-gray-100">
+          <tr className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm border-b border-gray-100 dark:border-gray-700">
             <th className="px-5 py-4 font-medium">Customer Name</th>
             <th className="px-5 py-4 font-medium">Mobile</th>
             <th className="px-5 py-4 font-medium">Location</th>
@@ -25,11 +28,11 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
             <th className="px-5 py-4 font-medium text-center">Actions</th>
           </tr>
         </thead>
-        <tbody className="text-sm text-gray-600">
+        <tbody className="text-sm text-gray-600 dark:text-gray-300">
           {customers.map((customer, index) => (
-            <tr key={customer.id || index} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
+            <tr key={customer.id || index} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
               <td 
-                className="px-5 py-4 font-medium text-gray-800 cursor-pointer hover:text-blue-600"
+                className="px-5 py-4 font-medium text-gray-800 dark:text-gray-200 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                 onClick={() => onView(customer.id)}
               >
                 {customer.name}
@@ -42,19 +45,19 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
                 {(() => {
                   const totalPending = customer.vehicles?.reduce((sum, v) => sum + (parseFloat(v.pendingAmount) || 0), 0) || 0;
                   return totalPending <= 0 ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#e6f8ec] text-[#2ecc71] tracking-wide">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#e6f8ec] dark:bg-green-900/30 text-[#2ecc71] dark:text-green-400 tracking-wide">
                       Paid
                     </span>
                   ) : (
-                    <span className="text-red-500 font-medium">₹{totalPending}</span>
+                    <span className="text-red-500 dark:text-red-400 font-medium">₹{totalPending}</span>
                   );
                 })()}
               </td>
               <td className="px-5 py-4">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium tracking-wide ${
-                  (customer.renewalDate === '-' || new Date(customer.renewalDate) < new Date()) ? 'bg-[#fee2e2] text-[#ef4444]' : 'bg-[#e6f8ec] text-[#2ecc71]'
+                  (customer.renewalDate === '-' || new Date(customer.renewalDate) < new Date()) ? 'bg-[#fee2e2] dark:bg-red-900/30 text-[#ef4444] dark:text-red-400' : 'bg-[#e6f8ec] dark:bg-green-900/30 text-[#2ecc71] dark:text-green-400'
                 }`}>
-                  {customer.renewalDate}
+                  {formatDate(customer.renewalDate)}
                 </span>
               </td>
               <td className="px-5 py-4">

@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCustomer } from '../context/CustomerContext';
 import { useResource } from '../context/ResourceContext';
+import { useVehicleType } from '../context/VehicleTypeContext';
+import { useModal } from '../context/ModalContext';
 import Header from '../components/Header';
 import { useForm, useWatch } from 'react-hook-form';
 import {
@@ -13,9 +15,12 @@ import {
 const AddVehicle = () => {
   const { customerId } = useParams();
   const navigate = useNavigate();
+  const { showModal } = useModal();
   const { addVehicle, checkDuplicateVehicle } = useCustomer();
   const { resources } = useResource();
+  const { vehicleTypes } = useVehicleType();
   const activeResources = resources.filter(r => r.status === 'Active');
+  const activeVehicleTypes = vehicleTypes.filter(vt => vt.status === 'Active');
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors, dirtyFields } } = useForm({
     defaultValues: {
@@ -60,15 +65,15 @@ const AddVehicle = () => {
 
     // Validate uniqueness
     if (checkDuplicateVehicle('vehicleNo', trimmedData.vehicleNo)) {
-      alert(`Error: Vehicle Number "${trimmedData.vehicleNo}" is already registered to another customer.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `Vehicle Number "${trimmedData.vehicleNo}" is already registered to another customer.` });
       return;
     }
     if (checkDuplicateVehicle('imei', trimmedData.imei)) {
-      alert(`Error: IMEI Number "${trimmedData.imei}" is already registered.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `IMEI Number "${trimmedData.imei}" is already registered.` });
       return;
     }
     if (checkDuplicateVehicle('simNumber', trimmedData.simNumber)) {
-      alert(`Error: SIM Number "${trimmedData.simNumber}" is already registered.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `SIM Number "${trimmedData.simNumber}" is already registered.` });
       return;
     }
 
@@ -94,8 +99,15 @@ const AddVehicle = () => {
     };
 
     await addVehicle(customerId, payload);
-    alert('Vehicle added successfully');
-    navigate(`/customers/edit/${customerId}`);
+    showModal({
+      type: 'success',
+      title: 'Success',
+      message: 'Vehicle added successfully!',
+      buttons: [
+        { text: 'View Owner', style: 'primary', onClick: () => navigate(`/customers/edit/${customerId}`) },
+        { text: 'Close', style: 'secondary' }
+      ]
+    });
   };
 
   const getInputClass = (fieldName) => {
@@ -140,16 +152,34 @@ const AddVehicle = () => {
                   {errors.vehicleNo && <p className="text-red-500 text-xs mt-1">{errors.vehicleNo.message}</p>}
                 </div>
                 <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Platform *</label>
+                  <select 
+                    {...register('platform', { required: 'Platform is required' })}
+                    className={getInputClass('platform')}
+                  >
+                    <option value="">Select</option>
+                    <option value="Tracco">Tracco</option>
+                    <option value="EagleIndia">EagleIndia</option>
+                    <option value="Treckin">Treckin</option>
+                    <option value="GPS Monitor">GPS Monitor</option>
+                    <option value="Onequik">Onequik</option>
+                    <option value="Nowilup">Nowilup</option>
+                  </select>
+                  {errors.platform && <p className="text-red-500 text-xs mt-1">{errors.platform.message}</p>}
+                </div>
+                <div>
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1">Vehicle Type *</label>
-                  <input 
-                    {...register('vehicleType', { 
-                      required: 'Vehicle Type is required',
-                      pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
-                    })} 
-                    onKeyDown={restrictAlphabetsSpaces}
-                    onPaste={pasteAlphabetsSpaces}
-                    className={getInputClass('vehicleType')} 
-                  />
+                  <select 
+                    {...register('vehicleType', { required: 'Please select Vehicle Type' })}
+                    className={getInputClass('vehicleType')}
+                  >
+                    <option value="">Select</option>
+                    {activeVehicleTypes.map(vt => (
+                      <option key={vt.id} value={vt.name}>
+                        {vt.name}
+                      </option>
+                    ))}
+                  </select>
                   {errors.vehicleType && <p className="text-red-500 text-xs mt-1">{errors.vehicleType.message}</p>}
                 </div>
                 <div>

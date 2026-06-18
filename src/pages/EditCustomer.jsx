@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCustomer } from '../context/CustomerContext';
 import { useResource } from '../context/ResourceContext';
+import { useModal } from '../context/ModalContext';
 import Header from '../components/Header';
 import { useForm } from 'react-hook-form';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
@@ -15,11 +16,10 @@ const EditCustomer = () => {
   const navigate = useNavigate();
   const { getCustomer, updateCustomer, deleteVehicle } = useCustomer();
   const { resources } = useResource();
+  const { showModal } = useModal();
   const activeResources = resources.filter(r => r.status === 'Active');
   
   const [customer, setCustomer] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [vehicleToDelete, setVehicleToDelete] = useState(null);
 
   const { register, handleSubmit, reset, watch, formState: { errors, dirtyFields } } = useForm({
     mode: 'onChange'
@@ -51,41 +51,46 @@ const EditCustomer = () => {
     const trimmedData = trimData(data);
     await updateCustomer(id, trimmedData);
     setCustomer({ ...customer, ...trimmedData });
-    alert('Owner updated successfully');
+    showModal({ type: 'success', title: 'Success', message: 'Owner updated successfully' });
   };
 
   const confirmDelete = (vehicleId) => {
-    setVehicleToDelete(vehicleId);
-    setShowModal(true);
-  };
-
-  const handleDelete = async () => {
-    if (vehicleToDelete) {
-      await deleteVehicle(id, vehicleToDelete);
-      setShowModal(false);
-      setVehicleToDelete(null);
-      setCustomer(getCustomer(id));
-    }
+    showModal({
+      type: 'confirm',
+      title: 'Delete Confirmation',
+      message: 'Are you sure you want to delete this vehicle? This action cannot be undone.',
+      buttons: [
+        { text: 'Cancel', style: 'secondary' },
+        { 
+          text: 'Delete', 
+          style: 'danger', 
+          onClick: async () => {
+            await deleteVehicle(id, vehicleId);
+            setCustomer(getCustomer(id));
+          }
+        }
+      ]
+    });
   };
 
   const getInputClass = (fieldName) => {
-    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors";
-    if (errors[fieldName]) return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50`;
-    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50`;
+    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200";
+    if (errors[fieldName]) return `${baseClass} border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/20`;
+    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 dark:border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50 dark:bg-green-900/20`;
     return `${baseClass} border-gray-200 focus:border-blue-500 focus:ring-blue-500`;
   };
 
   if (!customer) return null;
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 flex flex-col font-sans transition-colors duration-200">
       <Header />
       <main className="flex-1 p-6">
-        <div className="bg-white rounded shadow-sm mx-auto border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded shadow-sm mx-auto border border-gray-200 dark:border-gray-700 transition-colors duration-200">
           
           {/* Header Section */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-gray-100 gap-4">
-            <h3 className="text-[1.1rem] font-bold text-gray-800">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-gray-100 dark:border-gray-700 gap-4">
+            <h3 className="text-[1.1rem] font-bold text-gray-800 dark:text-white">
               Edit Customer: {customer.name}
             </h3>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full md:w-auto">
@@ -106,11 +111,11 @@ const EditCustomer = () => {
 
           <div className="p-6">
             {/* Edit Owner Details Section */}
-            <h4 className="text-[1rem] font-bold text-gray-800 mb-4">Edit Owner Details</h4>
+            <h4 className="text-[1rem] font-bold text-gray-800 dark:text-gray-200 mb-4">Edit Owner Details</h4>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Customer Name *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Customer Name *</label>
                   <input 
                     {...register('name', { 
                       required: 'Customer Name is required',
@@ -124,7 +129,7 @@ const EditCustomer = () => {
                   {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Mobile Number *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Mobile Number *</label>
                   <input 
                     {...register('mobile', { 
                       required: 'Mobile Number is required',
@@ -137,7 +142,7 @@ const EditCustomer = () => {
                   {errors.mobile && <p className="text-red-500 text-xs mt-1">{errors.mobile.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Email</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Email</label>
                   <input 
                     {...register('email', {
                       pattern: { value: /^\S+@\S+\.\S+$/i, message: 'Invalid email format' }
@@ -148,7 +153,7 @@ const EditCustomer = () => {
                   {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Location *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Location *</label>
                   <input 
                     {...register('location', { 
                       required: 'Location is required',
@@ -164,7 +169,7 @@ const EditCustomer = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Alternate Mobile 1</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Alternate Mobile 1</label>
                   <input 
                     {...register('altMobile1', { 
                       pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
@@ -177,7 +182,7 @@ const EditCustomer = () => {
                   {errors.altMobile1 && <p className="text-red-500 text-xs mt-1">{errors.altMobile1.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Alternate Mobile 2</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Alternate Mobile 2</label>
                   <input 
                     {...register('altMobile2', { 
                       pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
@@ -195,7 +200,7 @@ const EditCustomer = () => {
                   {errors.altMobile2 && <p className="text-red-500 text-xs mt-1">{errors.altMobile2.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Alternate Mobile 3</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Alternate Mobile 3</label>
                   <input 
                     {...register('altMobile3', { 
                       pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
@@ -214,7 +219,7 @@ const EditCustomer = () => {
                   {errors.altMobile3 && <p className="text-red-500 text-xs mt-1">{errors.altMobile3.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Lead Closure By</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Lead Closure By</label>
                   <select 
                     {...register('leadClosureBy', { required: 'Please select Lead Closure Employee' })}
                     className={getInputClass('leadClosureBy')}
@@ -244,11 +249,11 @@ const EditCustomer = () => {
               </div>
             </form>
 
-            <hr className="my-8 border-gray-200" />
+            <hr className="my-8 border-gray-200 dark:border-gray-700" />
 
             {/* Manage Vehicles Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-              <h4 className="text-[1rem] font-bold text-gray-800">Manage Vehicles</h4>
+              <h4 className="text-[1rem] font-bold text-gray-800 dark:text-gray-200">Manage Vehicles</h4>
               <button 
                 onClick={() => navigate(`/customers/vehicle/add/${id}`)}
                 className="w-full sm:w-auto bg-[#2ecc71] text-white px-4 py-2 rounded text-[13px] font-medium hover:bg-[#27ae60] transition-colors text-center"
@@ -260,32 +265,34 @@ const EditCustomer = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#f8f9fa] border-t border-b border-gray-100">
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Vehicle Number</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Device Model</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">IMEI</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">SIM Number</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Total Payment</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Pending</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600">Actions</th>
+                  <tr className="bg-[#f8f9fa] dark:bg-gray-800/50 border-t border-b border-gray-100 dark:border-gray-700">
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Vehicle Number</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Platform</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Device Model</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">IMEI</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">SIM Number</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Total Payment</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {customer.vehicles && customer.vehicles.length > 0 ? (
                     customer.vehicles.map((vehicle, index) => (
-                      <tr key={vehicle.id || index} className="border-b border-gray-100">
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.vehicleNo}</td>
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.deviceModel}</td>
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.imei}</td>
-                        <td className="p-3 text-[14px] text-gray-700">{vehicle.simNumber}</td>
-                        <td className="p-3 text-[14px] text-gray-700">₹{vehicle.totalPayment}</td>
+                      <tr key={vehicle.id || index} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.vehicleNo}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.platform || '-'}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.deviceModel}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.imei}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.simNumber}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">₹{vehicle.totalPayment}</td>
                         <td className="p-3">
                           {vehicle.pendingAmount <= 0 ? (
-                            <span className="bg-[#d4edda] text-[#155724] px-2 py-1 rounded text-[12px] font-medium">
+                            <span className="bg-[#d4edda] dark:bg-green-900/30 text-[#155724] dark:text-green-400 px-2 py-1 rounded text-[12px] font-medium tracking-wide">
                               Paid
                             </span>
                           ) : (
-                            <span className="text-red-500 font-medium text-[14px]">
+                            <span className="text-red-500 dark:text-red-400 font-medium text-[14px]">
                               ₹{vehicle.pendingAmount}
                             </span>
                           )}
@@ -308,7 +315,7 @@ const EditCustomer = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="p-4 text-center text-sm text-gray-500">No vehicles found.</td>
+                      <td colSpan="8" className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No vehicles found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -319,29 +326,6 @@ const EditCustomer = () => {
         </div>
       </main>
 
-      {/* Delete Confirmation Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-lg">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Vehicle</h3>
-            <p className="text-gray-600 mb-6 text-sm">Are you sure you want to delete this vehicle? This action cannot be undone.</p>
-            <div className="flex justify-end space-x-3">
-              <button 
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-100 text-gray-800 rounded text-sm font-medium hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleDelete}
-                className="px-4 py-2 bg-[#e74c3c] text-white rounded text-sm font-medium hover:bg-[#c0392b] transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

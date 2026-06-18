@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCustomer } from '../context/CustomerContext';
+import { useModal } from '../context/ModalContext';
+import { useSettings } from '../context/SettingsContext';
 import Header from '../components/Header';
 import { useForm, useWatch } from 'react-hook-form';
 import {
@@ -11,7 +13,9 @@ import {
 const CustomerRenewal = () => {
   const { id: vehicleId } = useParams(); // URL might pass vehicleId as id
   const navigate = useNavigate();
+  const { showModal } = useModal();
   const { getVehicle, getCustomer, updateVehicle, addRenewal } = useCustomer();
+  const { formatDate } = useSettings();
   const [vehicle, setVehicle] = useState(null);
   const [notesLength, setNotesLength] = useState(0);
 
@@ -88,14 +92,22 @@ const CustomerRenewal = () => {
       notes: trimmedData.notes
     });
 
-    alert('Renewal Processed Successfully');
-    navigate('/renewals');
+    showModal({
+      type: 'success',
+      title: 'Renewal Processed',
+      message: 'Renewal completed successfully',
+      buttons: [
+        { text: 'View Customer', style: 'primary', onClick: () => navigate(`/customers/view/${vehicle.customerId}`) },
+        { text: 'Renewal History', onClick: () => navigate('/renewals') },
+        { text: 'Close', style: 'secondary' }
+      ]
+    });
   };
 
   const getInputClass = (fieldName) => {
-    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors";
-    if (errors[fieldName]) return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50`;
-    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50`;
+    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200";
+    if (errors[fieldName]) return `${baseClass} border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/20`;
+    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 dark:border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50 dark:bg-green-900/20`;
     return `${baseClass} border-gray-200 focus:border-blue-500 focus:ring-blue-500`;
   };
 
@@ -104,13 +116,13 @@ const CustomerRenewal = () => {
   const displayCustomerName = cust ? cust.name : vehicle.customerId;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex flex-col">
+    <div className="min-h-screen bg-[#f8f9fa] dark:bg-gray-900 flex flex-col transition-colors duration-200">
       <Header />
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-3xl mx-auto space-y-6">
           
-          <div className="flex justify-between items-center bg-white p-4 rounded shadow-sm border border-gray-100">
-            <h1 className="text-2xl font-bold text-gray-800">Add Renewal</h1>
+          <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Add Renewal</h1>
             <button 
               onClick={() => navigate(`/customers/view/${vehicle.customerId}`)}
               className="bg-gray-600 text-white px-4 py-2 rounded font-medium hover:bg-gray-700 transition-colors"
@@ -119,28 +131,28 @@ const CustomerRenewal = () => {
             </button>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded p-4 flex justify-between items-center shadow-sm">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-4 flex justify-between items-center shadow-sm">
             <div>
-              <p className="text-sm text-blue-600 font-semibold mb-1">Customer Name</p>
-              <p className="text-blue-900 font-bold">{displayCustomerName}</p>
+              <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold mb-1">Customer Name</p>
+              <p className="text-blue-900 dark:text-blue-300 font-bold">{displayCustomerName}</p>
             </div>
             <div>
-              <p className="text-sm text-blue-600 font-semibold mb-1">Vehicle No</p>
-              <p className="text-blue-900 font-bold">{vehicle.vehicleNo}</p>
+              <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold mb-1">Vehicle No</p>
+              <p className="text-blue-900 dark:text-blue-300 font-bold">{vehicle.vehicleNo}</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-blue-600 font-semibold mb-1">Current Expiry Date</p>
-              <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm">
-                {vehicle.expiryDate}
+              <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold mb-1">Current Expiry Date</p>
+              <span className="bg-blue-600 dark:bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm">
+                {formatDate(vehicle.expiryDate)}
               </span>
             </div>
           </div>
 
-          <div className="bg-white rounded shadow-sm border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors duration-200">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Renewal Date *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Renewal Date *</label>
                   <input 
                     type="date" 
                     max={getTodayDateString()}
@@ -154,7 +166,7 @@ const CustomerRenewal = () => {
                   {errors.renewalDate && <p className="text-red-500 text-xs mt-1">{errors.renewalDate.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Renewal Amount (₹) *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Renewal Amount (₹) *</label>
                   <input 
                     type="number" 
                     {...register('renewalAmount', { 
@@ -168,7 +180,7 @@ const CustomerRenewal = () => {
                   {errors.renewalAmount && <p className="text-red-500 text-xs mt-1">{errors.renewalAmount.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Validity (Months) *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Validity (Months) *</label>
                   <select {...register('validity', { required: 'Validity is required' })} className={getInputClass('validity')}>
                     <option value="">Select</option>
                     <option value="3 Months">3 Months</option>
@@ -186,11 +198,11 @@ const CustomerRenewal = () => {
                   {errors.validity && <p className="text-red-500 text-xs mt-1">{errors.validity.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New Expiry Date * - Auto</label>
-                  <input type="date" {...register('newExpiryDate')} readOnly className="w-full border border-gray-200 rounded px-3 py-2 bg-gray-50 text-gray-500 font-medium cursor-not-allowed" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Expiry Date * - Auto</label>
+                  <input type="date" {...register('newExpiryDate')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium cursor-not-allowed transition-colors" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Mode *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Mode *</label>
                   <select {...register('paymentMode', { required: 'Payment Mode is required' })} className={getInputClass('paymentMode')}>
                     <option value="">Select</option>
                     <option value="ET Gpay">ET Gpay</option>
@@ -214,7 +226,7 @@ const CustomerRenewal = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Max 500 chars)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (Max 500 chars)</label>
                 <textarea 
                   {...register('notes', { maxLength: 500 })} 
                   rows="3" 
@@ -225,7 +237,7 @@ const CustomerRenewal = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-gray-100">
+              <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button 
                   type="submit" 
                   disabled={Object.keys(errors).length > 0}

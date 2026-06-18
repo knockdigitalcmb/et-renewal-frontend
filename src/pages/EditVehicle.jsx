@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCustomer } from '../context/CustomerContext';
 import { useResource } from '../context/ResourceContext';
+import { useVehicleType } from '../context/VehicleTypeContext';
+import { useModal } from '../context/ModalContext';
 import Header from '../components/Header';
 import { useForm, useWatch } from 'react-hook-form';
 import {
@@ -13,9 +15,12 @@ import {
 const EditVehicle = () => {
   const { vehicleId } = useParams();
   const navigate = useNavigate();
+  const { showModal } = useModal();
   const { getVehicle, updateVehicle, checkDuplicateVehicle } = useCustomer();
   const { resources } = useResource();
+  const { vehicleTypes } = useVehicleType();
   const activeResources = resources.filter(r => r.status === 'Active');
+  const activeVehicleTypes = vehicleTypes.filter(vt => vt.status === 'Active');
   
   const [vehicle, setVehicle] = useState(null);
 
@@ -24,7 +29,9 @@ const EditVehicle = () => {
   });
 
   const currentClosureBy = watch('leadClosureBy');
+  const currentVehicleType = watch('vehicleType');
   const hasInactiveSelected = currentClosureBy && !activeResources.some(r => r.employeeName === currentClosureBy);
+  const hasInactiveVehicleTypeSelected = currentVehicleType && !activeVehicleTypes.some(vt => vt.name === currentVehicleType);
 
   const devicePrice = useWatch({ control, name: 'devicePrice', defaultValue: 0 });
   const simPrice = useWatch({ control, name: 'simPrice', defaultValue: 0 });
@@ -38,6 +45,7 @@ const EditVehicle = () => {
       setVehicle(data);
       reset({
         vehicleNo: data.vehicleNo,
+        platform: data.platform || '',
         vehicleType: data.vehicleType || '',
         imei: data.imei,
         simNumber: data.simNumber,
@@ -82,15 +90,15 @@ const EditVehicle = () => {
 
     // Validate uniqueness, excluding the current vehicle
     if (checkDuplicateVehicle('vehicleNo', trimmedData.vehicleNo, vehicleId)) {
-      alert(`Error: Vehicle Number "${trimmedData.vehicleNo}" is already registered.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `Vehicle Number "${trimmedData.vehicleNo}" is already registered.` });
       return;
     }
     if (checkDuplicateVehicle('imei', trimmedData.imei, vehicleId)) {
-      alert(`Error: IMEI Number "${trimmedData.imei}" is already registered.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `IMEI Number "${trimmedData.imei}" is already registered.` });
       return;
     }
     if (checkDuplicateVehicle('simNumber', trimmedData.simNumber, vehicleId)) {
-      alert(`Error: SIM Number "${trimmedData.simNumber}" is already registered.`);
+      showModal({ type: 'error', title: 'Duplicate Found', message: `SIM Number "${trimmedData.simNumber}" is already registered.` });
       return;
     }
 
@@ -116,27 +124,34 @@ const EditVehicle = () => {
     };
 
     await updateVehicle(vehicleId, payload);
-    alert('Vehicle updated successfully');
-    navigate(`/customers/edit/${vehicle.customerId}`);
+    showModal({
+      type: 'success',
+      title: 'Success',
+      message: 'Vehicle updated successfully',
+      buttons: [
+        { text: 'View Owner', style: 'primary', onClick: () => navigate(`/customers/edit/${vehicle.customerId}`) },
+        { text: 'Close', style: 'secondary' }
+      ]
+    });
   };
 
   const getInputClass = (fieldName) => {
-    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors";
-    if (errors[fieldName]) return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50`;
-    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50`;
+    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200";
+    if (errors[fieldName]) return `${baseClass} border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/20`;
+    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 dark:border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50 dark:bg-green-900/20`;
     return `${baseClass} border-gray-200 focus:border-blue-500 focus:ring-blue-500`;
   };
 
   if (!vehicle) return null;
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 flex flex-col font-sans transition-colors duration-200">
       <Header />
       <main className="flex-1 p-6">
-        <div className="bg-white rounded shadow-sm mx-auto border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded shadow-sm mx-auto border border-gray-200 dark:border-gray-700 transition-colors duration-200">
           
-          <div className="flex justify-between items-center p-5 border-b border-gray-100">
-            <h3 className="text-[1.1rem] font-bold text-gray-800">Edit Vehicle</h3>
+          <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-[1.1rem] font-bold text-gray-800 dark:text-white">Edit Vehicle</h3>
             <button 
               onClick={() => navigate(`/customers/edit/${vehicle.customerId}`)}
               className="bg-[#3498db] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#2980b9] transition-colors"
@@ -151,7 +166,7 @@ const EditVehicle = () => {
               {/* Row 1 */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Vehicle Number *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Vehicle Number *</label>
                   <input 
                     {...register('vehicleNo', { 
                       required: 'Vehicle Number is required',
@@ -164,20 +179,41 @@ const EditVehicle = () => {
                   {errors.vehicleNo && <p className="text-red-500 text-xs mt-1">{errors.vehicleNo.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Vehicle Type *</label>
-                  <input 
-                    {...register('vehicleType', { 
-                      required: 'Vehicle Type is required',
-                      pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
-                    })} 
-                    onKeyDown={restrictAlphabetsSpaces}
-                    onPaste={pasteAlphabetsSpaces}
-                    className={getInputClass('vehicleType')} 
-                  />
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Platform *</label>
+                  <select 
+                    {...register('platform', { required: 'Platform is required' })}
+                    className={getInputClass('platform')}
+                  >
+                    <option value="">Select</option>
+                    <option value="Tracco">Tracco</option>
+                    <option value="EagleIndia">EagleIndia</option>
+                    <option value="Treckin">Treckin</option>
+                    <option value="GPS Monitor">GPS Monitor</option>
+                    <option value="Onequik">Onequik</option>
+                    <option value="Nowilup">Nowilup</option>
+                  </select>
+                  {errors.platform && <p className="text-red-500 text-xs mt-1">{errors.platform.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Vehicle Type *</label>
+                  <select 
+                    {...register('vehicleType', { required: 'Please select Vehicle Type' })}
+                    className={getInputClass('vehicleType')}
+                  >
+                    <option value="">Select</option>
+                    {hasInactiveVehicleTypeSelected && (
+                      <option value={currentVehicleType}>{currentVehicleType}</option>
+                    )}
+                    {activeVehicleTypes.map(vt => (
+                      <option key={vt.id} value={vt.name}>
+                        {vt.name}
+                      </option>
+                    ))}
+                  </select>
                   {errors.vehicleType && <p className="text-red-500 text-xs mt-1">{errors.vehicleType.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">IMEI Number *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">IMEI Number *</label>
                   <input 
                     {...register('imei', { 
                       required: 'IMEI is required',
@@ -190,7 +226,7 @@ const EditVehicle = () => {
                   {errors.imei && <p className="text-red-500 text-xs mt-1">{errors.imei.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">SIM Number *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">SIM Number *</label>
                   <input 
                     {...register('simNumber', { 
                       required: 'SIM Number is required',
@@ -207,7 +243,7 @@ const EditVehicle = () => {
               {/* Row 2 */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Device Model *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Device Model *</label>
                   <input 
                     {...register('deviceModel', { 
                       required: 'Device Model is required',
@@ -220,7 +256,7 @@ const EditVehicle = () => {
                   {errors.deviceModel && <p className="text-red-500 text-xs mt-1">{errors.deviceModel.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Device Price (₹) *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Device Price (₹) *</label>
                   <input 
                     type="number" 
                     step="0.01" 
@@ -235,7 +271,7 @@ const EditVehicle = () => {
                   {errors.devicePrice && <p className="text-red-500 text-xs mt-1">{errors.devicePrice.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">SIM Price (₹) *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">SIM Price (₹) *</label>
                   <input 
                     type="number" 
                     step="0.01" 
@@ -250,15 +286,15 @@ const EditVehicle = () => {
                   {errors.simPrice && <p className="text-red-500 text-xs mt-1">{errors.simPrice.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Total Payment (₹) - <span className="italic font-normal">Auto</span></label>
-                  <input {...register('totalPayment')} readOnly className="w-full border border-gray-200 rounded px-3 py-2 text-[14px] bg-gray-100 cursor-not-allowed text-gray-600 font-semibold" />
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Total Payment (₹) - <span className="italic font-normal">Auto</span></label>
+                  <input {...register('totalPayment')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-[14px] bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400 font-semibold transition-colors" />
                 </div>
               </div>
 
               {/* Row 3 */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Amount Paid (₹) *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Amount Paid (₹) *</label>
                   <input 
                     type="number" 
                     step="0.01" 
@@ -273,11 +309,11 @@ const EditVehicle = () => {
                   {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Pending Amount (₹) - <span className="italic font-normal">Auto</span></label>
-                  <input {...register('pendingAmount')} readOnly className="w-full border border-gray-200 rounded px-3 py-2 text-[14px] bg-gray-100 cursor-not-allowed text-gray-600 font-semibold" />
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Pending Amount (₹) - <span className="italic font-normal">Auto</span></label>
+                  <input {...register('pendingAmount')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-[14px] bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400 font-semibold transition-colors" />
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Payment Mode *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Payment Mode *</label>
                   <select {...register('paymentMode', { required: 'Payment Mode is required' })} className={getInputClass('paymentMode')}>
                     <option value="">Select</option>
                     <option value="ET Gpay">ET Gpay</option>
@@ -299,7 +335,7 @@ const EditVehicle = () => {
                   {errors.paymentMode && <p className="text-red-500 text-xs mt-1">{errors.paymentMode.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Installation Person *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Installation Person *</label>
                   <input 
                     {...register('installPerson', { 
                       required: 'Installation Person is required',
@@ -316,7 +352,7 @@ const EditVehicle = () => {
               {/* Row 4 */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Lead Closure By</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Lead Closure By</label>
                   <select 
                     {...register('leadClosureBy', { required: 'Please select Lead Closure Employee' })} 
                     className={getInputClass('leadClosureBy')}
@@ -334,7 +370,7 @@ const EditVehicle = () => {
                   {errors.leadClosureBy && <p className="text-red-500 text-xs mt-1">{errors.leadClosureBy.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Installation Date *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Installation Date *</label>
                   <input 
                     type="date" 
                     max={getTodayDateString()}
@@ -348,7 +384,7 @@ const EditVehicle = () => {
                   {errors.installDate && <p className="text-red-500 text-xs mt-1">{errors.installDate.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Validity *</label>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Validity *</label>
                   <select {...register('validity', { required: 'Validity is required' })} className={getInputClass('validity')}>
                     <option value="">Select</option>
                     <option value="1 Month">1 Month</option>
@@ -367,8 +403,8 @@ const EditVehicle = () => {
                   {errors.validity && <p className="text-red-500 text-xs mt-1">{errors.validity.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Expiry Date * - <span className="italic font-normal">Auto</span></label>
-                  <input type="date" {...register('expiryDate')} readOnly className="w-full border border-gray-200 rounded px-3 py-2 text-[14px] bg-gray-100 cursor-not-allowed text-gray-600 font-semibold" />
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Expiry Date * - <span className="italic font-normal">Auto</span></label>
+                  <input type="date" {...register('expiryDate')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-[14px] bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400 font-semibold transition-colors" />
                 </div>
               </div>
 

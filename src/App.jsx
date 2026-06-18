@@ -16,9 +16,16 @@ import CustomerRenewal from './pages/CustomerRenewal';
 import EditVehicle from './pages/EditVehicle';
 import AddVehicle from './pages/AddVehicle';
 import ImportCustomers from './pages/ImportCustomers';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import { ResourceProvider } from './context/ResourceContext';
 import { CustomerProvider } from './context/CustomerContext';
 import { LayoutProvider } from './context/LayoutContext';
+import { VehicleTypeProvider } from './context/VehicleTypeContext';
+import { ModalProvider } from './context/ModalContext';
+import { SettingsProvider } from './context/SettingsContext';
+import { ProfileProvider } from './context/ProfileContext';
+import VehicleTypeMaster from './pages/VehicleTypeMaster';
 
 function AppLayout() {
   return (
@@ -37,10 +44,13 @@ function AppLayout() {
           <Route path="/customers/renewal/:id" element={<CustomerRenewal />} />
           <Route path="/customers/import" element={<ImportCustomers />} />
           <Route path="/renewals" element={<RenewalHistory />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/resources/list" element={<ResourceList />} />
           <Route path="/resources/add" element={<AddResource />} />
           <Route path="/resources/view/:id" element={<ViewResource />} />
           <Route path="/resources/edit/:id" element={<EditResource />} />
+          <Route path="/master/vehicle-types" element={<VehicleTypeMaster />} />
         </Routes>
       </div>
     </div>
@@ -53,13 +63,21 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/*" element={
-          <LayoutProvider>
-            <ResourceProvider>
-              <CustomerProvider>
-                <AppLayout />
-              </CustomerProvider>
-            </ResourceProvider>
-          </LayoutProvider>
+          <SettingsProvider>
+            <ProfileProvider>
+              <ModalProvider>
+                <LayoutProvider>
+                  <ResourceProvider>
+                    <CustomerProvider>
+                      <VehicleTypeProvider>
+                        <AppLayout />
+                      </VehicleTypeProvider>
+                    </CustomerProvider>
+                  </ResourceProvider>
+                </LayoutProvider>
+              </ModalProvider>
+            </ProfileProvider>
+          </SettingsProvider>
         } />
       </Routes>
     </Router>
