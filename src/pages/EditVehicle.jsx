@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCustomer } from '../context/CustomerContext';
 import { useResource } from '../context/ResourceContext';
+import { useVehicleType } from '../context/VehicleTypeContext';
 import Header from '../components/Header';
 import { useForm, useWatch } from 'react-hook-form';
 import {
@@ -17,6 +18,8 @@ const EditVehicle = () => {
   const { resources } = useResource();
   const activeResources = resources.filter(r => r.status === 'Active');
   
+  const { vehicleTypes } = useVehicleType();
+
   const [vehicle, setVehicle] = useState(null);
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, dirtyFields } } = useForm({
@@ -25,6 +28,11 @@ const EditVehicle = () => {
 
   const currentClosureBy = watch('leadClosureBy');
   const hasInactiveSelected = currentClosureBy && !activeResources.some(r => r.employeeName === currentClosureBy);
+
+  const currentVehicleType = watch('vehicleType');
+  const availableVehicleTypes = vehicleTypes.filter(
+    t => t.status === 'Active' || t.name === currentVehicleType
+  );
 
   const devicePrice = useWatch({ control, name: 'devicePrice', defaultValue: 0 });
   const simPrice = useWatch({ control, name: 'simPrice', defaultValue: 0 });
@@ -165,15 +173,17 @@ const EditVehicle = () => {
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1">Vehicle Type *</label>
-                  <input 
-                    {...register('vehicleType', { 
-                      required: 'Vehicle Type is required',
-                      pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
-                    })} 
-                    onKeyDown={restrictAlphabetsSpaces}
-                    onPaste={pasteAlphabetsSpaces}
-                    className={getInputClass('vehicleType')} 
-                  />
+                  <select 
+                    {...register('vehicleType', { required: 'Please select Vehicle Type' })}
+                    className={getInputClass('vehicleType')}
+                  >
+                    <option value="">Select Vehicle Type</option>
+                    {availableVehicleTypes.map(type => (
+                      <option key={type.id} value={type.name}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </select>
                   {errors.vehicleType && <p className="text-red-500 text-xs mt-1">{errors.vehicleType.message}</p>}
                 </div>
                 <div>

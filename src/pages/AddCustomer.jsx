@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useCustomer } from '../context/CustomerContext';
 import { useResource } from '../context/ResourceContext';
+import { useVehicleType } from '../context/VehicleTypeContext';
 import { useNavigate } from 'react-router-dom';
 import {
   restrictName, restrictAlphabetsSpaces, restrictAlphanumeric, restrictNumbers, preventManualTyping,
@@ -11,9 +12,12 @@ import {
 
 const AddCustomer = () => {
   const navigate = useNavigate();
-  const { addCustomer, addVehicle, updateCustomer, customers, checkDuplicateVehicle } = useCustomer();
+  const { addCustomer, addVehicle, updateCustomer, customers, checkDuplicateVehicle, checkDuplicateUsername } = useCustomer();
   const { resources } = useResource();
   const activeResources = resources.filter(r => r.status === 'Active');
+  
+  const { vehicleTypes } = useVehicleType();
+  const activeVehicleTypes = vehicleTypes.filter(t => t.status === 'Active');
   
   const [notesLength, setNotesLength] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -35,18 +39,24 @@ const AddCustomer = () => {
       devicePrice: 0,
       simPrice: 0,
       amountPaid: 0,
-      notes: ''
+      notes: '',
+      platform: ''
     },
     mode: 'onChange' // Enable real-time validation for border colors
   });
 
   const userNameWatch = useWatch({ control, name: 'UserName' }) || '';
+  const platformWatch = useWatch({ control, name: 'platform' }) || '';
   const devicePrice = useWatch({ control, name: 'devicePrice' }) || 0;
   const simPrice = useWatch({ control, name: 'simPrice' }) || 0;
   const amountPaid = useWatch({ control, name: 'amountPaid' }) || 0;
   const installationDate = useWatch({ control, name: 'installationDate' });
   const validity = useWatch({ control, name: 'validity' });
   const notes = useWatch({ control, name: 'notes' });
+
+  const isDuplicateUsername = useMemo(() => {
+    return checkDuplicateUsername(platformWatch, userNameWatch);
+  }, [platformWatch, userNameWatch, checkDuplicateUsername]);
 
   const searchResults = useMemo(() => {
     if (!userNameWatch || selectedExistingCustomer) return [];
@@ -134,6 +144,10 @@ const AddCustomer = () => {
 
     // Uniqueness Check for new customers
     if (!selectedExistingCustomer) {
+      if (checkDuplicateUsername(trimmedData.platform, trimmedData.UserName)) {
+        alert(`Error: Username "${trimmedData.UserName}" already exists in platform "${trimmedData.platform}".`);
+        return;
+      }
       const exactMatch = customers.find(c => c.name.toLowerCase() === trimmedData.UserName.toLowerCase());
       if (exactMatch) {
         alert("Existing customer found. Select from dropdown to add vehicle.");
@@ -215,6 +229,7 @@ const AddCustomer = () => {
 
   const getInputClass = (fieldName) => {
     const baseClass = "w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors";
+    if (fieldName === 'UserName' && isDuplicateUsername) return `${baseClass} border-red-500 focus:ring-red-500 bg-red-50`;
     if (errors[fieldName]) return `${baseClass} border-red-500 focus:ring-red-500 bg-red-50`;
     if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 focus:ring-green-500 bg-green-50`;
     return `${baseClass} border-gray-200 focus:ring-blue-500`;
@@ -247,7 +262,24 @@ const AddCustomer = () => {
                 'Owner Details'
               )}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div>
+                <InputLabel label="Platform" required />
+                <select 
+                  {...register('platform', { required: 'Platform is required' })}
+                  disabled={!!selectedExistingCustomer}
+                  className={`${getInputClass('platform')} ${selectedExistingCustomer ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                >
+                  <option value="">Select Platform</option>
+                  <option value="Tracco">Tracco</option>
+                  <option value="EagleIndia">EagleIndia</option>
+                  <option value="Treckin">Treckin</option>
+                  <option value="GPS Monitor">GPS Monitor</option>
+                  <option value="Onequik">Onequik</option>
+                  <option value="Nowilup">Nowilup</option>
+                </select>
+                <ErrorMsg error={errors.platform} />
+              </div>
               <div className="relative">
                 <InputLabel label="User Name" required />
                 <input 
@@ -280,6 +312,9 @@ const AddCustomer = () => {
                 )}
                 
                 <ErrorMsg error={errors.UserName} />
+                {isDuplicateUsername && (
+                  <p className="text-red-500 text-xs mt-1">Username already exists in selected platform</p>
+                )}
               </div>
               <div>
                 <InputLabel label="Primary Mobile" required />
@@ -325,7 +360,7 @@ const AddCustomer = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mt-6">
               <div>
                 <InputLabel label="Alternate Mobile 1" />
                 <input 
@@ -403,16 +438,17 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Vehicle Type" required />
-                <input 
-                  type="text" 
-                  {...register('vehicleType', { 
-                    required: 'Vehicle Type is required',
-                    pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
-                  })}
-                  onKeyDown={restrictAlphabetsSpaces}
-                  onPaste={pasteAlphabetsSpaces}
+                <select 
+                  {...register('vehicleType', { required: 'Please select Vehicle Type' })}
                   className={getInputClass('vehicleType')}
-                />
+                >
+                  <option value="">Select Vehicle Type</option>
+                  {activeVehicleTypes.map(type => (
+                    <option key={type.id} value={type.name}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
                 <ErrorMsg error={errors.vehicleType} />
               </div>
               <div>
@@ -666,9 +702,9 @@ const AddCustomer = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 border-t border-gray-100 pt-6">
             <button 
               type="submit"
-              disabled={Object.keys(errors).length > 0}
-              className={`w-full sm:w-auto px-10 py-3 rounded text-white font-medium shadow-sm transition-colors text-center ${Object.keys(errors).length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'hover:bg-[#3411b0]'}`}
-              style={{ backgroundColor: Object.keys(errors).length > 0 ? '#9ca3af' : '#4b1bc4' }}
+              disabled={Object.keys(errors).length > 0 || isDuplicateUsername}
+              className={`w-full sm:w-auto px-10 py-3 rounded text-white font-medium shadow-sm transition-colors text-center ${(Object.keys(errors).length > 0 || isDuplicateUsername) ? 'bg-gray-400 cursor-not-allowed' : 'hover:bg-[#3411b0]'}`}
+              style={{ backgroundColor: (Object.keys(errors).length > 0 || isDuplicateUsername) ? '#9ca3af' : '#4b1bc4' }}
             >
               Save Customer/Vehicle
             </button>

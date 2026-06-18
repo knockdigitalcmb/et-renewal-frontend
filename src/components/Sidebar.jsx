@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { MdDashboard, MdPeople, MdPersonAdd, MdAutorenew, MdAddBox, MdList } from 'react-icons/md';
+import { MdDashboard, MdPeople, MdPersonAdd, MdAutorenew, MdAddBox, MdList, MdDirectionsCar } from 'react-icons/md';
 import { useLayout } from '../context/LayoutContext';
 
 const Sidebar = () => {
@@ -97,6 +97,19 @@ const Sidebar = () => {
             <NavLink to="/resources/list" onClick={closeSidebar} className={getLinkClass('/resources/list')}>
               <MdList className="w-5 h-5 mr-3" />
               Resource List
+            </NavLink>
+          </li>
+        </ul>
+
+        <div className="mt-8 mb-4 px-6">
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">MASTER SETTINGS</h2>
+        </div>
+        
+        <ul className="space-y-1 mb-8">
+          <li>
+            <NavLink to="/master/vehicle-types" onClick={closeSidebar} className={getLinkClass('/master/vehicle-types')}>
+              <MdDirectionsCar className="w-5 h-5 mr-3" />
+              Vehicle Types
             </NavLink>
           </li>
         </ul>

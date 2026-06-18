@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCustomer } from '../context/CustomerContext';
 import { useResource } from '../context/ResourceContext';
+import { useVehicleType } from '../context/VehicleTypeContext';
 import Header from '../components/Header';
 import { useForm, useWatch } from 'react-hook-form';
 import {
@@ -16,6 +17,9 @@ const AddVehicle = () => {
   const { addVehicle, checkDuplicateVehicle } = useCustomer();
   const { resources } = useResource();
   const activeResources = resources.filter(r => r.status === 'Active');
+
+  const { vehicleTypes } = useVehicleType();
+  const activeVehicleTypes = vehicleTypes.filter(t => t.status === 'Active');
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors, dirtyFields } } = useForm({
     defaultValues: {
@@ -141,15 +145,17 @@ const AddVehicle = () => {
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1">Vehicle Type *</label>
-                  <input 
-                    {...register('vehicleType', { 
-                      required: 'Vehicle Type is required',
-                      pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
-                    })} 
-                    onKeyDown={restrictAlphabetsSpaces}
-                    onPaste={pasteAlphabetsSpaces}
-                    className={getInputClass('vehicleType')} 
-                  />
+                  <select 
+                    {...register('vehicleType', { required: 'Please select Vehicle Type' })}
+                    className={getInputClass('vehicleType')}
+                  >
+                    <option value="">Select Vehicle Type</option>
+                    {activeVehicleTypes.map(type => (
+                      <option key={type.id} value={type.name}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </select>
                   {errors.vehicleType && <p className="text-red-500 text-xs mt-1">{errors.vehicleType.message}</p>}
                 </div>
                 <div>

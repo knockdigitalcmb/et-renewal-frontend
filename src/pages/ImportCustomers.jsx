@@ -7,7 +7,7 @@ import { regexPatterns, validatePastDate } from '../utils/validationUtils';
 
 const ImportCustomers = () => {
   const navigate = useNavigate();
-  const { customers, addCustomer } = useCustomer();
+  const { customers, addCustomer, checkDuplicateUsername } = useCustomer();
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
 
@@ -29,7 +29,8 @@ const ImportCustomers = () => {
         const json = XLSX.utils.sheet_to_json(worksheet);
         
         const existingMobiles = new Set(customers.map(c => c.mobile));
-        const existingVehicles = new Set(customers.map(c => c.vehicleNo));
+        const existingVehicles = new Set(customers.map(c => c.vehicleNo).filter(v => v !== '-'));
+        const importedCombinations = new Set(); // To track platform+username in current import batch
         
         let count = 0;
         let skipped = 0;
@@ -38,9 +39,13 @@ const ImportCustomers = () => {
           const rowMobile = String(row['Mobile Number'] || row['Mobile'] || row.mobileNumber || '-').trim();
           const rowVehicle = String(row['Vehicle No'] || row['Vehicle Number'] || row.vehicleNo || '-').trim();
           const rowName = String(row['Customer Name'] || row['Name'] || row.customerName || 'Imported Customer').trim();
+          const rowPlatform = String(row['Platform'] || row.platform || '').trim();
           
           // Data Integrity Validation
           let isValid = true;
+
+          // Platform is required for the uniqueness check
+          if (!rowPlatform) isValid = false;
 
           // Validate required formatting
           if (rowMobile !== '-' && !regexPatterns.mobile.test(rowMobile)) isValid = false;
@@ -55,17 +60,23 @@ const ImportCustomers = () => {
             continue;
           }
 
+          const platformUserKey = `${rowPlatform.toLowerCase()}-${rowName.toLowerCase()}`;
+
           if ((rowMobile !== '-' && existingMobiles.has(rowMobile)) || 
-              (rowVehicle !== '-' && existingVehicles.has(rowVehicle))) {
+              (rowVehicle !== '-' && existingVehicles.has(rowVehicle)) ||
+              checkDuplicateUsername(rowPlatform, rowName) ||
+              importedCombinations.has(platformUserKey)) {
             skipped++;
             continue;
           }
 
           if (rowMobile !== '-') existingMobiles.add(rowMobile);
           if (rowVehicle !== '-') existingVehicles.add(rowVehicle);
+          importedCombinations.add(platformUserKey);
 
           const formattedData = {
             customerName: rowName,
+            platform: rowPlatform,
             mobileNumber: rowMobile,
             email: row['Email'] || row.email || '',
             location: row['Location'] || row.location || '-',
