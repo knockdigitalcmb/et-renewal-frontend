@@ -1,0 +1,427 @@
+import NumericInput from '../../components/common/NumericInput';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useCustomer } from '../../context/CustomerContext';
+import { useResource } from '../../context/ResourceContext';
+import { useVehicleType } from '../../context/VehicleTypeContext';
+import { useDeviceModel } from '../../context/DeviceModelContext';
+import { useModal } from '../../context/ModalContext';
+import Header from '../../components/layout/Header';
+import { useForm, useWatch } from 'react-hook-form';
+import {
+  restrictAlphabetsSpaces, restrictAlphanumeric, restrictNumbers, preventManualTyping,
+  pasteAlphabetsSpaces, pasteAlphanumeric, pasteNumbers, trimData, regexPatterns,
+  getTodayDateString, validatePastDate
+} from '../../utils/validationUtils';
+
+const EditVehicle = () => {
+  const { vehicleId } = useParams();
+  const navigate = useNavigate();
+  const { showModal } = useModal();
+  const { getVehicle, updateVehicle, checkDuplicateVehicle } = useCustomer();
+  const { resources } = useResource();
+  const { vehicleTypes } = useVehicleType();
+  const { deviceModels } = useDeviceModel();
+  const activeResources = resources.filter(r => r.status === 'Active');
+  const activeVehicleTypes = vehicleTypes.filter(vt => vt.status === 'Active');
+  
+  const [vehicle, setVehicle] = useState(null);
+
+  const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, dirtyFields } } = useForm({
+    mode: 'onChange'
+  });
+
+  const currentDeviceModel = useWatch({ control, name: 'deviceModel' });
+  const displayDeviceModels = React.useMemo(() => {
+    const active = deviceModels.filter(m => m.status === 'Active');
+    if (currentDeviceModel && !active.some(m => m.name === currentDeviceModel)) {
+      return [...active, { id: 'legacy', name: currentDeviceModel }];
+    }
+    return active;
+  }, [deviceModels, currentDeviceModel]);
+
+  const currentClosureBy = watch('leadClosureBy');
+  const currentVehicleType = watch('vehicleType');
+  const hasInactiveSelected = currentClosureBy && !activeResources.some(r => r.employeeName === currentClosureBy);
+  const hasInactiveVehicleTypeSelected = currentVehicleType && !activeVehicleTypes.some(vt => vt.name === currentVehicleType);
+
+  const devicePrice = useWatch({ control, name: 'devicePrice', defaultValue: 0 });
+  const simPrice = useWatch({ control, name: 'simPrice', defaultValue: 0 });
+  const amountPaid = useWatch({ control, name: 'amountPaid', defaultValue: 0 });
+  const installDate = useWatch({ control, name: 'installDate' });
+  const validity = useWatch({ control, name: 'validity', defaultValue: 0 });
+
+  useEffect(() => {
+    const data = getVehicle(vehicleId);
+    if (data) {
+      setVehicle(data);
+      reset({
+        vehicleNo: data.vehicleNo || '',
+        platform: data.platform || '',
+        vehicleType: data.vehicleType || '',
+        imei: data.imei || '',
+        simNumber: data.simNumber || '',
+        deviceModel: data.deviceModel || '',
+        devicePrice: data.devicePrice || 0,
+        simPrice: data.simPrice || 0,
+        amountPaid: data.amountPaid || 0,
+        paymentMode: data.paymentMode || '',
+        installPerson: data.installPerson || '',
+        leadClosureBy: data.leadClosureBy || '',
+        installDate: data.installDate || '',
+        validity: data.validity || 12,
+      });
+    } else {
+      navigate('/customers');
+    }
+  }, [vehicleId, getVehicle, navigate, reset]);
+
+  // Auto Calculations
+  useEffect(() => {
+    const total = (parseFloat(devicePrice) || 0) + (parseFloat(simPrice) || 0);
+    setValue('totalPayment', total);
+    
+    const pending = total - (parseFloat(amountPaid) || 0);
+    setValue('pendingAmount', pending > 0 ? pending : 0);
+  }, [devicePrice, simPrice, amountPaid, setValue]);
+
+  useEffect(() => {
+    if (installDate && validity) {
+      const d = new Date(installDate);
+      if (validity === '1 Month') d.setMonth(d.getMonth() + 1);
+      else if (validity === '3 Months') d.setMonth(d.getMonth() + 3);
+      else if (validity === '6 Months') d.setMonth(d.getMonth() + 6);
+      else if (validity === '12 months' || validity === '1 Year') d.setFullYear(d.getFullYear() + 1);
+      else d.setMonth(d.getMonth() + parseInt(validity));
+      setValue('expiryDate', d.toISOString().split('T')[0]);
+    }
+  }, [installDate, validity, setValue]);
+
+  const onSubmit = async (data) => {
+    const trimmedData = trimData(data);
+
+    // Validate uniqueness, excluding the current vehicle
+    if (checkDuplicateVehicle('vehicleNo', trimmedData.vehicleNo, vehicleId)) {
+      showModal({ type: 'error', title: 'Duplicate Found', message: `Vehicle Number "${trimmedData.vehicleNo}" is already registered.` });
+      return;
+    }
+    if (checkDuplicateVehicle('imei', trimmedData.imei, vehicleId)) {
+      showModal({ type: 'error', title: 'Duplicate Found', message: `IMEI Number "${trimmedData.imei}" is already registered.` });
+      return;
+    }
+    if (checkDuplicateVehicle('simNumber', trimmedData.simNumber, vehicleId)) {
+      showModal({ type: 'error', title: 'Duplicate Found', message: `SIM Number "${trimmedData.simNumber}" is already registered.` });
+      return;
+    }
+
+    const totalPayment = (parseFloat(trimmedData.devicePrice) || 0) + (parseFloat(trimmedData.simPrice) || 0);
+    const pendingAmount = totalPayment - (parseFloat(trimmedData.amountPaid) || 0);
+    
+    let expiryDate = '';
+    if (trimmedData.installDate && trimmedData.validity) {
+      const d = new Date(trimmedData.installDate);
+      if (trimmedData.validity === '1 Month') d.setMonth(d.getMonth() + 1);
+      else if (trimmedData.validity === '3 Months') d.setMonth(d.getMonth() + 3);
+      else if (trimmedData.validity === '6 Months') d.setMonth(d.getMonth() + 6);
+      else if (trimmedData.validity === '12 months' || trimmedData.validity === '1 Year') d.setFullYear(d.getFullYear() + 1);
+      else d.setMonth(d.getMonth() + parseInt(trimmedData.validity));
+      expiryDate = d.toISOString().split('T')[0];
+    }
+
+    const payload = {
+      ...trimmedData,
+      totalPayment,
+      pendingAmount: pendingAmount > 0 ? pendingAmount : 0,
+      expiryDate
+    };
+
+    await updateVehicle(vehicleId, payload);
+    showModal({
+      type: 'success',
+      title: 'Success',
+      message: 'Vehicle updated successfully',
+      buttons: [
+        { text: 'View Owner', style: 'primary', onClick: () => navigate(`/customers/edit/${vehicle.customerId}`) },
+        { text: 'Close', style: 'secondary' }
+      ]
+    });
+  };
+
+  const getInputClass = (fieldName) => {
+    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200";
+    if (errors[fieldName]) return `${baseClass} border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/20`;
+    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 dark:border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50 dark:bg-green-900/20`;
+    return `${baseClass} border-gray-200 focus:border-blue-500 focus:ring-blue-500`;
+  };
+
+  if (!vehicle) return null;
+
+  return (
+    <div className="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 flex flex-col font-sans transition-colors duration-200">
+      <Header />
+      <main className="flex-1 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded shadow-sm mx-auto border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+          
+          <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-[1.1rem] font-bold text-gray-800 dark:text-white">Edit Vehicle</h3>
+            <button 
+              onClick={() => navigate(`/customers/edit/${vehicle.customerId}`)}
+              className="bg-[#3498db] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#2980b9] transition-colors"
+            >
+              Back to Owner
+            </button>
+          </div>
+
+          <div className="p-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              
+              {/* Row 1 */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Vehicle Number *</label>
+                  <input 
+                    {...register('vehicleNo', { 
+                      required: 'Vehicle Number is required',
+                      pattern: { value: regexPatterns.vehicleNumber, message: 'Only alphabets and numbers allowed' }
+                    })} 
+                    onKeyDown={restrictAlphanumeric}
+                    onPaste={pasteAlphanumeric}
+                    className={getInputClass('vehicleNo')} 
+                  />
+                  {errors.vehicleNo && <p className="text-red-500 text-xs mt-1">{errors.vehicleNo.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Platform *</label>
+                  <select 
+                    {...register('platform', { required: 'Platform is required' })}
+                    className={getInputClass('platform')}
+                  >
+                    <option value="">Select</option>
+                    <option value="Tracco">Tracco</option>
+                    <option value="EagleIndia">EagleIndia</option>
+                    <option value="Treckin">Treckin</option>
+                    <option value="GPS Monitor">GPS Monitor</option>
+                    <option value="Onequik">Onequik</option>
+                    <option value="Nowilup">Nowilup</option>
+                  </select>
+                  {errors.platform && <p className="text-red-500 text-xs mt-1">{errors.platform.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Vehicle Type *</label>
+                  <select 
+                    {...register('vehicleType', { required: 'Please select Vehicle Type' })}
+                    className={getInputClass('vehicleType')}
+                  >
+                    <option value="">Select</option>
+                    {hasInactiveVehicleTypeSelected && (
+                      <option value={currentVehicleType}>{currentVehicleType}</option>
+                    )}
+                    {activeVehicleTypes.map(vt => (
+                      <option key={vt.id} value={vt.name}>
+                        {vt.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.vehicleType && <p className="text-red-500 text-xs mt-1">{errors.vehicleType.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">IMEI Number *</label>
+                  <input 
+                    {...register('imei', { 
+                      required: 'IMEI is required',
+                      pattern: { value: regexPatterns.imei, message: 'Must be exactly 15 digits' }
+                    })} 
+                    onKeyDown={restrictNumbers}
+                    onPaste={pasteNumbers}
+                    className={getInputClass('imei')} 
+                  />
+                  {errors.imei && <p className="text-red-500 text-xs mt-1">{errors.imei.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">SIM Number *</label>
+                  <NumericInput  
+                    {...register('simNumber', { 
+                      required: 'SIM Number is required',
+                      pattern: { value: regexPatterns.sim, message: 'Must be 10 or 13 digits' }
+                    })} 
+                    className={getInputClass('simNumber')} 
+                  />
+                  {errors.simNumber && <p className="text-red-500 text-xs mt-1">{errors.simNumber.message}</p>}
+                </div>
+              </div>
+              
+              {/* Row 2 */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Device Model *</label>
+                  <select 
+                    {...register('deviceModel', { required: 'Device Model is required' })}
+                    className={getInputClass('deviceModel')}
+                  >
+                    <option value="">Select</option>
+                    {displayDeviceModels.map(dm => (
+                      <option key={dm.id} value={dm.name}>{dm.name}</option>
+                    ))}
+                  </select>
+                  {errors.deviceModel && <p className="text-red-500 text-xs mt-1">{errors.deviceModel.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Device Price (₹) *</label>
+                  <NumericInput step="0.01" 
+                    {...register('devicePrice', { 
+                      required: 'Device Price is required',
+                      min: { value: 0, message: 'Cannot be negative' }
+                    })} 
+                    className={getInputClass('devicePrice')} 
+                  defaultToZero />
+                  {errors.devicePrice && <p className="text-red-500 text-xs mt-1">{errors.devicePrice.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">SIM Price (₹) *</label>
+                  <NumericInput step="0.01" 
+                    {...register('simPrice', { 
+                      required: 'SIM Price is required',
+                      min: { value: 0, message: 'Cannot be negative' }
+                    })} 
+                    className={getInputClass('simPrice')} 
+                  defaultToZero />
+                  {errors.simPrice && <p className="text-red-500 text-xs mt-1">{errors.simPrice.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Total Payment (₹) - <span className="italic font-normal">Auto</span></label>
+                  <input {...register('totalPayment')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-[14px] bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400 font-semibold transition-colors" />
+                </div>
+              </div>
+
+              {/* Row 3 */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Amount Paid (₹) *</label>
+                  <NumericInput step="0.01" 
+                    {...register('amountPaid', { 
+                      required: 'Amount Paid is required',
+                      min: { value: 0, message: 'Cannot be negative' }
+                    })} 
+                    className={getInputClass('amountPaid')} 
+                  defaultToZero />
+                  {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Pending Amount (₹) - <span className="italic font-normal">Auto</span></label>
+                  <input {...register('pendingAmount')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-[14px] bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400 font-semibold transition-colors" />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Payment Mode *</label>
+                  <select {...register('paymentMode', { required: 'Payment Mode is required' })} className={getInputClass('paymentMode')}>
+                    <option value="">Select</option>
+                    <option value="ET Gpay">ET Gpay</option>
+                    <option value="ET Phonepe">ET Phonepe</option>
+                    <option value="ET Paytm">ET Paytm</option>
+                    <option value="ET Account">ET Account</option>
+                    <option value="ET Cheque">ET Cheque</option>
+                    <option value="8002 Gpay">8002 Gpay</option>
+                    <option value="8002 Paytm">8002 Paytm</option>
+                    <option value="8002 PhonePe">8002 PhonePe</option>
+                    <option value="8002 Account">8002 Account</option>
+                    <option value="WATI Gpay">WATI Gpay</option>
+                    <option value="WATI Paytm">WATI Paytm</option>
+                    <option value="WATI PhonePe">WATI PhonePe</option>
+                    <option value="WATI Account">WATI Account</option>
+                    <option value="Cash">Cash</option>
+                    <option value="CC Payment Gateway">CC Payment Gateway</option>
+                  </select>
+                  {errors.paymentMode && <p className="text-red-500 text-xs mt-1">{errors.paymentMode.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Installation Person *</label>
+                  <input 
+                    {...register('installPerson', { 
+                      required: 'Installation Person is required',
+                      pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
+                    })} 
+                    onKeyDown={restrictAlphabetsSpaces}
+                    onPaste={pasteAlphabetsSpaces}
+                    className={getInputClass('installPerson')} 
+                  />
+                  {errors.installPerson && <p className="text-red-500 text-xs mt-1">{errors.installPerson.message}</p>}
+                </div>
+              </div>
+
+              {/* Row 4 */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Lead Closure By</label>
+                  <select 
+                    {...register('leadClosureBy', { required: 'Please select Lead Closure Employee' })} 
+                    className={getInputClass('leadClosureBy')}
+                  >
+                    <option value="">Select Employee</option>
+                    {hasInactiveSelected && (
+                      <option value={currentClosureBy}>{currentClosureBy}</option>
+                    )}
+                    {activeResources.map(resource => (
+                      <option key={resource.id} value={resource.employeeName}>
+                        {resource.employeeName}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.leadClosureBy && <p className="text-red-500 text-xs mt-1">{errors.leadClosureBy.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Installation Date *</label>
+                  <input 
+                    type="date" 
+                    max={getTodayDateString()}
+                    {...register('installDate', { 
+                      required: 'Installation Date is required',
+                      validate: validatePastDate
+                    })} 
+                    onKeyDown={preventManualTyping}
+                    className={getInputClass('installDate')} 
+                  />
+                  {errors.installDate && <p className="text-red-500 text-xs mt-1">{errors.installDate.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Validity *</label>
+                  <select {...register('validity', { required: 'Validity is required' })} className={getInputClass('validity')}>
+                    <option value="">Select</option>
+                    <option value="1 Month">1 Month</option>
+                    <option value="3 Months">3 Months</option>
+                    <option value="6 Months">6 Months</option>
+                    <option value="12 months">12 months</option>
+                    <option value="13 months">13 months</option>
+                    <option value="14 months">14 months</option>
+                    <option value="15 months">15 months</option>
+                    <option value="24 months">24 months</option>
+                    <option value="27 months">27 months</option>
+                    <option value="36 months">36 months</option>
+                    <option value="48 months">48 months</option>
+                    <option value="60 months">60 months</option>
+                  </select>
+                  {errors.validity && <p className="text-red-500 text-xs mt-1">{errors.validity.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Expiry Date * - <span className="italic font-normal">Auto</span></label>
+                  <input type="date" {...register('expiryDate')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-[14px] bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400 font-semibold transition-colors" />
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <button 
+                  type="submit" 
+                  disabled={Object.keys(errors).length > 0}
+                  className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${Object.keys(errors).length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#4a6cf7] hover:bg-[#3a5bd9]'}`}
+                >
+                  Update Vehicle
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default EditVehicle;

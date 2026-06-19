@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import GlobalModal from '../components/GlobalModal';
+import GlobalModal from '../components/common/Modal';
 
 const ModalContext = createContext();
 
