@@ -255,12 +255,12 @@ const EditCustomer = () => {
             {/* Manage Vehicles Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
               <h4 className="text-[1rem] font-bold text-gray-800 dark:text-gray-200">Manage Vehicles</h4>
-              <button 
+              {/* <button 
                 onClick={() => navigate(`/customers/vehicle/add/${id}`)}
                 className="w-full sm:w-auto bg-[#2ecc71] text-white px-4 py-2 rounded text-[13px] font-medium hover:bg-[#27ae60] transition-colors text-center"
               >
                 + Add New Vehicle
-              </button>
+              </button> */}
             </div>
             
             <div className="overflow-x-auto">
@@ -286,7 +286,7 @@ const EditCustomer = () => {
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.deviceModel}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.imei}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.simNumber}</td>
-                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">₹{vehicle.totalPayment}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">₹{vehicle.totalAmount || 0}</td>
                         <td className="p-3">
                           {vehicle.pendingAmount <= 0 ? (
                             <span className="bg-[#d4edda] dark:bg-green-900/30 text-[#155724] dark:text-green-400 px-2 py-1 rounded text-[12px] font-medium tracking-wide">

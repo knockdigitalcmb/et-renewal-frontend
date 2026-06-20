@@ -1,10 +1,12 @@
 import NumericInput from '../../components/common/NumericInput';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, useFieldArray } from 'react-hook-form';
 import { useCustomer } from '../../context/CustomerContext';
 import { useResource } from '../../context/ResourceContext';
 import { useVehicleType } from '../../context/VehicleTypeContext';
 import { useDeviceModel } from '../../context/DeviceModelContext';
+import { useImei } from '../../context/ImeiContext';
+import { useSim } from '../../context/SimContext';
 import { useModal } from '../../context/ModalContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -20,9 +22,14 @@ const AddCustomer = () => {
   const { resources } = useResource();
   const { vehicleTypes } = useVehicleType();
   const { deviceModels } = useDeviceModel();
+  const { imeis } = useImei();
+  const { sims } = useSim();
+
   const activeDeviceModels = deviceModels.filter(m => m.status === 'Active');
   const activeResources = resources.filter(r => r.status === 'Active');
   const activeVehicleTypes = vehicleTypes.filter(vt => vt.status === 'Active');
+  const activeImeis = imeis.filter(i => i.status === 'Active' || i.status === 'Available' || !i.status);
+  const activeSims = sims.filter(s => s.status === 'Active' || s.status === 'Available' || !s.status);
   
   const [notesLength, setNotesLength] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -41,17 +48,29 @@ const AddCustomer = () => {
 
   const { register, handleSubmit, control, setValue, watch, reset, formState: { errors, dirtyFields } } = useForm({
     defaultValues: {
-      devicePrice: 0,
-      simPrice: 0,
+      vehicles: [{ vehicleNumber: '', platform: '', vehicleType: '', imeiNumber: '', simNumber: '', deviceModel: '' }],
+      deviceCharge: 0,
+      simCharge: 0,
+      softwareCharge: 0,
+      technicianCharge: 0,
+      courierCharge: 0,
       amountPaid: 0,
       notes: ''
     },
-    mode: 'onChange' // Enable real-time validation for border colors
+    mode: 'onChange'
+  });
+
+  const { fields: vehicleFields, append: appendVehicle, remove: removeVehicle } = useFieldArray({
+    control,
+    name: 'vehicles'
   });
 
   const userNameWatch = useWatch({ control, name: 'UserName' }) || '';
-  const devicePrice = useWatch({ control, name: 'devicePrice' }) || 0;
-  const simPrice = useWatch({ control, name: 'simPrice' }) || 0;
+  const deviceCharge = useWatch({ control, name: 'deviceCharge' }) || 0;
+  const simCharge = useWatch({ control, name: 'simCharge' }) || 0;
+  const softwareCharge = useWatch({ control, name: 'softwareCharge' }) || 0;
+  const technicianCharge = useWatch({ control, name: 'technicianCharge' }) || 0;
+  const courierCharge = useWatch({ control, name: 'courierCharge' }) || 0;
   const amountPaid = useWatch({ control, name: 'amountPaid' }) || 0;
   const installationDate = useWatch({ control, name: 'installationDate' });
   const validity = useWatch({ control, name: 'validity' });
@@ -83,18 +102,22 @@ const AddCustomer = () => {
     setValue('altMobile3', c.altMobile3 || '', { shouldValidate: true });
     setValue('email', c.email || '', { shouldValidate: true });
     setValue('location', c.location || '', { shouldValidate: true });
-    setValue('leadClosureBy', c.leadClosureBy || '', { shouldValidate: true });
     setShowDropdown(false);
   };
 
   // Auto Calculations
-  const totalPaymentReceived = parseFloat(devicePrice) + parseFloat(simPrice);
-  const pendingAmount = totalPaymentReceived - parseFloat(amountPaid);
+  const parseNum = (val) => {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+  
+  const totalAmount = parseNum(deviceCharge) + parseNum(simCharge) + parseNum(softwareCharge) + parseNum(technicianCharge) + parseNum(courierCharge);
+  const pendingAmount = totalAmount - parseNum(amountPaid);
 
   useEffect(() => {
-    setValue('totalPaymentReceived', totalPaymentReceived);
+    setValue('totalAmount', totalAmount);
     setValue('pendingAmount', pendingAmount);
-  }, [devicePrice, simPrice, amountPaid, setValue, totalPaymentReceived, pendingAmount]);
+  }, [deviceCharge, simCharge, softwareCharge, technicianCharge, courierCharge, amountPaid, setValue, totalAmount, pendingAmount]);
 
   useEffect(() => {
     if (installationDate && validity && validity !== 'Select') {
@@ -126,58 +149,43 @@ const AddCustomer = () => {
 
   const onSubmit = async (data) => {
     const trimmedData = trimData(data);
-    
-    // Validate uniqueness
-    if (checkDuplicateVehicle('vehicleNo', trimmedData.vehicleNumber)) {
-      showModal({ type: 'error', title: 'Duplicate Found', message: `Vehicle Number "${trimmedData.vehicleNumber}" is already registered to another customer.` });
-      return;
-    }
-    if (checkDuplicateVehicle('imei', trimmedData.imeiNumber)) {
-      showModal({ type: 'error', title: 'Duplicate Found', message: `IMEI Number "${trimmedData.imeiNumber}" is already registered.` });
-      return;
-    }
-    if (checkDuplicateVehicle('simNumber', trimmedData.simNumber)) {
-      showModal({ type: 'error', title: 'Duplicate Found', message: `SIM Number "${trimmedData.simNumber}" is already registered.` });
-      return;
-    }
+    const vehicles = trimmedData.vehicles || [];
 
-    // Uniqueness Check for new customers
-    if (!selectedExistingCustomer) {
-      const exactMatch = customers.find(c => 
-        c.name.toLowerCase() === trimmedData.UserName.toLowerCase() &&
-        c.vehicles?.some(v => v.platform === trimmedData.platform)
-      );
-      if (exactMatch) {
-        showModal({ type: 'error', title: 'Duplicate Customer', message: "Existing customer found on this platform. Select from dropdown to add vehicle." });
+    // Duplicate check for all vehicle numbers in the form
+    for (const v of vehicles) {
+      if (checkDuplicateVehicle('vehicleNo', v.vehicleNumber)) {
+        showModal({ type: 'error', title: 'Duplicate Found', message: `Vehicle Number "${v.vehicleNumber}" is already registered.` });
         return;
       }
     }
 
-    const finalData = {
-      ...trimmedData,
-      totalPaymentReceived,
-      pendingAmount
-    };
-    
-    // If Existing Customer is selected
+    if (!selectedExistingCustomer) {
+      const exactMatch = customers.find(c =>
+        c.name.toLowerCase() === trimmedData.UserName.toLowerCase() &&
+        c.vehicles?.some(v => vehicles.some(fv => fv.platform === v.platform))
+      );
+      if (exactMatch) {
+        showModal({ type: 'error', title: 'Duplicate Customer', message: 'Existing customer found on this platform. Select from dropdown to add vehicle.' });
+        return;
+      }
+    }
+
+    const finalData = { ...trimmedData, totalAmount, pendingAmount };
+
     if (selectedExistingCustomer) {
-      // Update alternate mobile numbers for the existing customer
       await updateCustomer(selectedExistingCustomer.id, {
         altMobile1: trimmedData.altMobile1 || '',
         altMobile2: trimmedData.altMobile2 || '',
         altMobile3: trimmedData.altMobile3 || '',
       });
-
-      const res = await addVehicle(selectedExistingCustomer.id, {
-        vehicleNo: trimmedData.vehicleNumber || '-',
-        platform: trimmedData.platform || '',
-        vehicleType: trimmedData.vehicleType || '',
-        imei: trimmedData.imeiNumber || '',
-        simNumber: trimmedData.simNumber || '',
-        deviceModel: trimmedData.deviceModel || '',
-        devicePrice: trimmedData.devicePrice || 0,
-        simPrice: trimmedData.simPrice || 0,
-        totalPayment: totalPaymentReceived || 0,
+      const sharedFinancial = {
+        deviceCharge: trimmedData.deviceCharge || 0,
+        simCharge: trimmedData.simCharge || 0,
+        softwareCharge: trimmedData.softwareCharge || 0,
+        technicianCharge: trimmedData.technicianCharge || 0,
+        courierCharge: trimmedData.courierCharge || 0,
+        totalAmount: totalAmount || 0,
+        transactionRefNo: trimmedData.transactionRefNo || '',
         amountPaid: trimmedData.amountPaid || 0,
         pendingAmount: pendingAmount > 0 ? pendingAmount : 0,
         paymentMode: trimmedData.paymentMode || '',
@@ -186,28 +194,35 @@ const AddCustomer = () => {
         installDate: trimmedData.installationDate || '-',
         validity: trimmedData.validity || '12',
         expiryDate: trimmedData.expiryDate || '-'
-      });
-      if (res.success) {
-        showModal({
-          type: 'success',
-          title: 'Success',
-          message: 'Vehicle added to existing customer successfully!',
-          buttons: [
-            { text: 'View Customer', style: 'primary', onClick: () => navigate(`/customers/edit/${selectedExistingCustomer.id}`) },
-            { text: 'Add Another', onClick: () => handleReset() },
-            { text: 'Close', style: 'secondary' }
-          ]
+      };
+      for (const v of vehicles) {
+        await addVehicle(selectedExistingCustomer.id, {
+          vehicleNo: v.vehicleNumber || '-',
+          platform: v.platform || '',
+          vehicleType: v.vehicleType || '',
+          imei: v.imeiNumber || '',
+          simNumber: v.simNumber || '',
+          deviceModel: v.deviceModel || '',
+          ...sharedFinancial
         });
       }
+      showModal({
+        type: 'success', title: 'Success',
+        message: `${vehicles.length} vehicle(s) added to existing customer!`,
+        buttons: [
+          { text: 'View Customer', style: 'primary', onClick: () => navigate(`/customers/edit/${selectedExistingCustomer.id}`) },
+          { text: 'Add Another', onClick: () => handleReset() },
+          { text: 'Close', style: 'secondary' }
+        ]
+      });
       return;
     }
 
     const res = await addCustomer(finalData);
     if (res.success) {
       showModal({
-        type: 'success',
-        title: 'Success',
-        message: 'Customer & Vehicle saved successfully!',
+        type: 'success', title: 'Success',
+        message: `Customer & ${vehicles.length} vehicle(s) saved successfully!`,
         buttons: [
           { text: 'View Customers', style: 'primary', onClick: () => navigate('/customers') },
           { text: 'Add Another', onClick: () => handleReset() },
@@ -232,8 +247,8 @@ const AddCustomer = () => {
   };
 
   const InputLabel = ({ label, required, isAuto }) => (
-    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-      {label} {required && '*'} {isAuto && '- Auto'}
+    <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+      {label} {required && <span className="text-red-500">*</span>} {isAuto && <span className="text-blue-500 font-normal italic">- Auto</span>}
     </label>
   );
 
@@ -250,7 +265,7 @@ const AddCustomer = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f3f5] dark:bg-gray-900 flex flex-col p-8 transition-colors duration-200">
+    <div className="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 flex flex-col p-4 sm:p-8 transition-colors duration-200">
       
       {/* Header */}
       <div className="flex justify-between items-center mb-6 max-w-[1400px] mx-auto w-full bg-white dark:bg-gray-800 p-6 rounded-md shadow-sm transition-colors duration-200">
@@ -263,27 +278,27 @@ const AddCustomer = () => {
         </button>
       </div>
 
-      {/* Main Form Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm max-w-[1400px] mx-auto w-full p-8 border border-gray-100 dark:border-gray-700 transition-colors duration-200">
+      {/* Main Form Wrapper */}
+      <div className="max-w-[1400px] mx-auto w-full space-y-6">
         <form onSubmit={handleSubmit(onSubmit, onError)}>
           
-          {/* Owner Details */}
-          <div className="mb-8 relative" ref={dropdownRef}>
-            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
-              {selectedExistingCustomer ? (
-                <span className="text-[#3498db]">Owner Details (Existing Customer Selected)</span>
-              ) : (
-                'Owner Details'
-              )}
-            </h3>
+          {/* Section 1: Owner Details */}
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-6 sm:p-8 border border-gray-100 dark:border-gray-700 transition-colors duration-200 mb-6 relative" ref={dropdownRef}>
+            <div className="flex items-center mb-6 pb-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold mr-3">1</div>
+              <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">
+                {selectedExistingCustomer ? <span className="text-[#3498db]">Owner Details (Existing Customer Selected)</span> : 'Owner Details'}
+              </h3>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="relative">
-                <InputLabel label="User Name" required />
+                <InputLabel label="Customer Name" required />
                 <input 
                   type="text" 
                   autoComplete="off"
                   {...register('UserName', { 
-                    required: 'User Name is required',
+                    required: 'Customer Name is required',
                     minLength: { value: 3, message: 'Minimum 3 characters required' },
                     pattern: { value: regexPatterns.UserName, message: 'Only alphabets, numbers, space and dot allowed' }
                   })}
@@ -291,7 +306,6 @@ const AddCustomer = () => {
                   onPaste={pasteName}
                   className={getInputClass('UserName')} 
                 />
-                
                 {/* Auto Search Dropdown */}
                 {showDropdown && searchResults.length > 0 && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
@@ -307,7 +321,6 @@ const AddCustomer = () => {
                     ))}
                   </div>
                 )}
-                
                 <ErrorMsg error={errors.UserName} />
               </div>
               <div>
@@ -405,126 +418,239 @@ const AddCustomer = () => {
             </div>
           </div>
 
-          {/* Vehicle & Financial Details */}
-          <div className="mb-8">
-            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">Vehicle & Financial Details</h3>
+          {/* Section 2: Vehicle Details */}
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-6 sm:p-8 border border-gray-100 dark:border-gray-700 transition-colors duration-200 mb-6">
+            <div className="flex items-center mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold mr-3">2</div>
+              <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">Vehicle Details</h3>
+            </div>
+
+            <div className="space-y-6">
+              {vehicleFields.map((field, index) => (
+                <div key={field.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+                  {/* Vehicle block header */}
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 text-sm">
+                      Vehicle {index + 1}
+                    </h4>
+                    {index > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => removeVehicle(index)}
+                        className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1 transition-colors"
+                      >
+                        🗑 Remove Vehicle
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                      <InputLabel label="Vehicle Number" required />
+                      <input
+                        type="text"
+                        {...register(`vehicles.${index}.vehicleNumber`, {
+                          required: 'Vehicle Number is required',
+                          pattern: { value: regexPatterns.vehicleNumber, message: 'Only alphabets and numbers allowed' }
+                        })}
+                        onKeyDown={restrictAlphanumeric}
+                        onPaste={pasteAlphanumeric}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
+                          errors.vehicles?.[index]?.vehicleNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                        }`}
+                      />
+                      {errors.vehicles?.[index]?.vehicleNumber && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].vehicleNumber.message}</p>}
+                    </div>
+                    <div>
+                      <InputLabel label="Platform" required />
+                      <select
+                        {...register(`vehicles.${index}.platform`, { required: 'Platform is required' })}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
+                          errors.vehicles?.[index]?.platform ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                        }`}
+                      >
+                        <option value="">Select Platform</option>
+                        <option value="Tracco">Tracco</option>
+                        <option value="EagleIndia">EagleIndia</option>
+                        <option value="Trackin">Trackin</option>
+                        <option value="GPS Monitor">GPS Monitor</option>
+                        <option value="OneQlik">OneQlik</option>
+                        <option value="Navi lap">Navi lap</option>
+                      </select>
+                      {errors.vehicles?.[index]?.platform && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].platform.message}</p>}
+                    </div>
+                    <div>
+                      <InputLabel label="Vehicle Type" required />
+                      <select
+                        {...register(`vehicles.${index}.vehicleType`, { required: 'Vehicle Type is required' })}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
+                          errors.vehicles?.[index]?.vehicleType ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                        }`}
+                      >
+                        <option value="">Select Type</option>
+                        {activeVehicleTypes.map(vt => (
+                          <option key={vt.id} value={vt.name}>{vt.name}</option>
+                        ))}
+                      </select>
+                      {errors.vehicles?.[index]?.vehicleType && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].vehicleType.message}</p>}
+                    </div>
+                    <div>
+                      <InputLabel label="IMEI Number" required />
+                      <input
+                        type="text"
+                        maxLength={15}
+                        placeholder="Enter 15-digit IMEI"
+                        {...register(`vehicles.${index}.imeiNumber`, {
+                          required: 'IMEI is required',
+                          pattern: { value: /^\d{15}$/, message: 'IMEI must be exactly 15 digits' }
+                        })}
+                        onKeyDown={restrictNumbers}
+                        onPaste={pasteNumbers}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
+                          errors.vehicles?.[index]?.imeiNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                        }`}
+                      />
+                      {errors.vehicles?.[index]?.imeiNumber && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].imeiNumber.message}</p>}
+                    </div>
+                    <div>
+                      <InputLabel label="SIM Number" required />
+                      <input
+                        type="text"
+                        maxLength={13}
+                        placeholder="Enter 10 or 13-digit SIM No"
+                        {...register(`vehicles.${index}.simNumber`, {
+                          required: 'SIM Number is required',
+                          pattern: { value: /^\d{10}$|^\d{13}$/, message: 'SIM number must be 10 or 13 digits' }
+                        })}
+                        onKeyDown={restrictNumbers}
+                        onPaste={pasteNumbers}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
+                          errors.vehicles?.[index]?.simNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                        }`}
+                      />
+                      {errors.vehicles?.[index]?.simNumber && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].simNumber.message}</p>}
+                    </div>
+                    <div>
+                      <InputLabel label="Device Model" required />
+                      <select
+                        {...register(`vehicles.${index}.deviceModel`, { required: 'Device Model is required' })}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
+                          errors.vehicles?.[index]?.deviceModel ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                        }`}
+                      >
+                        <option value="">Select Model</option>
+                        {activeDeviceModels.map(dm => (
+                          <option key={dm.id} value={dm.name}>{dm.name}</option>
+                        ))}
+                      </select>
+                      {errors.vehicles?.[index]?.deviceModel && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].deviceModel.message}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add Vehicle Button */}
+              <button
+                type="button"
+                onClick={() => appendVehicle({ vehicleNumber: '', platform: '', vehicleType: '', imeiNumber: '', simNumber: '', deviceModel: '' })}
+                className="w-full border-2 border-dashed border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 rounded-lg py-3 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+              >
+                + Add Vehicle
+              </button>
+            </div>
+          </div>
+
+
+          {/* Section 3: Financial Details */}
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-6 sm:p-8 border border-gray-100 dark:border-gray-700 transition-colors duration-200 mb-6">
+            <div className="flex justify-between items-center mb-6 pb-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center font-bold mr-3">3</div>
+                <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">Financial Details</h3>
+              </div>
+              
+              {/* Payment Status Badge */}
+              {/* {pendingAmount <= 0 ? (
+                <div className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-4 py-1.5 rounded-full font-bold flex items-center shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                  Paid
+                </div>
+              ) : (
+                <div className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 px-4 py-1.5 rounded-full font-bold flex items-center shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 mr-2"></span>
+                  Pending
+                </div>
+              )} */}
+            </div>
             
+            {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              
               <div>
-                <InputLabel label="Vehicle Number" required />
-                <input 
-                  type="text" 
-                  {...register('vehicleNumber', { 
-                    required: 'Vehicle Number is required',
-                    pattern: { value: regexPatterns.vehicleNumber, message: 'Only alphabets and numbers allowed' }
+                <InputLabel label="Device Charge (₹)" required />
+                <NumericInput {...register('deviceCharge', { 
+                    required: 'Device Charge is required',
+                    min: { value: 0, message: 'Cannot be negative' }
                   })}
-                  onKeyDown={restrictAlphanumeric}
-                  onPaste={pasteAlphanumeric}
-                  className={getInputClass('vehicleNumber')}
+                  className={getInputClass('deviceCharge')}
+                  defaultToZero 
                 />
-                <ErrorMsg error={errors.vehicleNumber} />
+                <ErrorMsg error={errors.deviceCharge} />
               </div>
               <div>
-                <InputLabel label="Platform" required />
-                <select 
-                  {...register('platform', { required: 'Platform is required' })}
-                  className={getInputClass('platform')}
-                >
-                  <option value="">Select</option>
-                  <option value="Tracco">Tracco</option>
-                  <option value="EagleIndia">EagleIndia</option>
-                  <option value="Trackin">Trackin</option>
-                  <option value="GPS Monitor">GPS Monitor</option>
-                  <option value="OneQlik">OneQlik</option>
-                  <option value="Navi lap">Navi lap</option>
-                </select>
-                <ErrorMsg error={errors.platform} />
-              </div>
-              <div>
-                <InputLabel label="Vehicle Type" required />
-                <select 
-                  {...register('vehicleType', { required: 'Please select Vehicle Type' })}
-                  className={getInputClass('vehicleType')}
-                >
-                  <option value="">Select</option>
-                  {activeVehicleTypes.map(vt => (
-                    <option key={vt.id} value={vt.name}>
-                      {vt.name}
-                    </option>
-                  ))}
-                </select>
-                <ErrorMsg error={errors.vehicleType} />
-              </div>
-              <div>
-                <InputLabel label="IMEI Number" required />
-                <NumericInput  
-                  {...register('imeiNumber', { 
-                    required: 'IMEI is required',
-                    pattern: { value: regexPatterns.imei, message: 'Must be exactly 15 digits' }
+                <InputLabel label="SIM Charge (₹)" required />
+                <NumericInput {...register('simCharge', { 
+                    required: 'SIM Charge is required',
+                    min: { value: 0, message: 'Cannot be negative' }
                   })}
-                  className={getInputClass('imeiNumber')}
+                  className={getInputClass('simCharge')}
+                  defaultToZero 
                 />
-                <ErrorMsg error={errors.imeiNumber} />
+                <ErrorMsg error={errors.simCharge} />
               </div>
               <div>
-                <InputLabel label="SIM Number" required />
-                <NumericInput  
-                  {...register('simNumber', { 
-                    required: 'SIM Number is required',
-                    pattern: { value: regexPatterns.sim, message: 'Must be 10 or 13 digits' }
+                <InputLabel label="Software Charge (₹)" />
+                <NumericInput {...register('softwareCharge', { 
+                    min: { value: 0, message: 'Cannot be negative' }
                   })}
-                  className={getInputClass('simNumber')}
+                  className={getInputClass('softwareCharge')}
+                  defaultToZero 
                 />
-                <ErrorMsg error={errors.simNumber} />
+                <ErrorMsg error={errors.softwareCharge} />
+              </div>
+              <div>
+                <InputLabel label="Technician Charge (₹)" />
+                <NumericInput {...register('technicianCharge', { 
+                    min: { value: 0, message: 'Cannot be negative' }
+                  })}
+                  className={getInputClass('technicianCharge')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.technicianCharge} />
               </div>
             </div>
 
+            {/* Row 2 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div>
-                <InputLabel label="Device Model" required />
-                <select 
-                    {...register('deviceModel', { required: 'Device Model is required' })}
-                    className={getInputClass('deviceModel')}
-                  >
-                    <option value="">Select</option>
-                    {activeDeviceModels.map(dm => (
-                      <option key={dm.id} value={dm.name}>{dm.name}</option>
-                    ))}
-                  </select>
-                <ErrorMsg error={errors.deviceModel} />
-              </div>
-              <div>
-                <InputLabel label="Device Price (₹)" required />
-                <NumericInput {...register('devicePrice', { 
-                    required: 'Device Price is required',
+                <InputLabel label="Courier Charge (₹)" />
+                <NumericInput {...register('courierCharge', { 
                     min: { value: 0, message: 'Cannot be negative' }
                   })}
-                  className={getInputClass('devicePrice')}
-                defaultToZero />
-                <ErrorMsg error={errors.devicePrice} />
+                  className={getInputClass('courierCharge')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.courierCharge} />
               </div>
               <div>
-                <InputLabel label="SIM Price (₹)" required />
-                <NumericInput {...register('simPrice', { 
-                    required: 'SIM Price is required',
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
-                  className={getInputClass('simPrice')}
-                defaultToZero />
-                <ErrorMsg error={errors.simPrice} />
-              </div>
-              <div>
-                <InputLabel label="Total Payment Received (₹)" isAuto />
+                <InputLabel label="Total Amount (₹)" isAuto />
                 <input 
                   type="text" 
                   readOnly
-                  value={totalPaymentReceived}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-semibold transition-colors"
+                  value={totalAmount}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-bold transition-colors"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
                 <InputLabel label="Amount Paid (₹)" required />
                 <NumericInput {...register('amountPaid', { 
@@ -532,7 +658,8 @@ const AddCustomer = () => {
                     min: { value: 0, message: 'Cannot be negative' }
                   })}
                   className={getInputClass('amountPaid')}
-                defaultToZero />
+                  defaultToZero 
+                />
                 <ErrorMsg error={errors.amountPaid} />
               </div>
               <div>
@@ -541,16 +668,20 @@ const AddCustomer = () => {
                   type="text" 
                   readOnly
                   value={pendingAmount}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-semibold transition-colors"
+                  className={`w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-sm font-bold transition-colors cursor-not-allowed ${pendingAmount > 0 ? 'text-red-500' : 'text-green-600'}`}
                 />
               </div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
                 <InputLabel label="Payment Mode" required />
                 <select 
                   {...register('paymentMode', { required: 'Payment Mode is required' })}
                   className={getInputClass('paymentMode')}
                 >
-                  <option value="">Select</option>
+                  <option value="">Select Mode</option>
                   <option value="ET Gpay">ET Gpay</option>
                   <option value="ET Phonepe">ET Phonepe</option>
                   <option value="ET Paytm">ET Paytm</option>
@@ -570,25 +701,31 @@ const AddCustomer = () => {
                 <ErrorMsg error={errors.paymentMode} />
               </div>
               <div>
-                <InputLabel label="Payment Received Date" required />
+                <InputLabel label="Transaction Ref No (Last 6 Digits)" required />
                 <input 
-                  type="date" 
-                  max={getTodayDateString()}
-                  {...register('paymentReceivedDate', { 
-                    required: 'Payment Received Date is required',
-                    validate: validatePastDate
+                  type="text" 
+                  maxLength={6}
+                  {...register('transactionRefNo', { 
+                    required: 'Transaction Ref No is required',
+                    pattern: { value: /^\d{6}$/, message: 'Please enter exactly 6 digits.' }
                   })}
-                  onKeyDown={preventManualTyping}
-                  className={getInputClass('paymentReceivedDate')}
+                  onKeyDown={restrictNumbers}
+                  onPaste={pasteNumbers}
+                  className={getInputClass('transactionRefNo')}
+                  placeholder="e.g. 987654"
                 />
-                <ErrorMsg error={errors.paymentReceivedDate} />
+                <ErrorMsg error={errors.transactionRefNo} />
               </div>
             </div>
           </div>
 
-          {/* Installation Details */}
-          <div className="mb-8">
-            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">Installation Details</h3>
+          {/* Section 4: Installation Details */}
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-6 sm:p-8 border border-gray-100 dark:border-gray-700 transition-colors duration-200 mb-6">
+            <div className="flex items-center mb-6 pb-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold mr-3">4</div>
+              <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">Installation Details</h3>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div>
                 <InputLabel label="Installation Person" required />
@@ -642,6 +779,7 @@ const AddCustomer = () => {
                   className={getInputClass('validity')}
                 >
                   <option value="">Select</option>
+                  <option value="1 Month">1 Month</option>
                   <option value="3 Months">3 Months</option>
                   <option value="6 Months">6 Months</option>
                   <option value="12 Months">12 Months</option>
