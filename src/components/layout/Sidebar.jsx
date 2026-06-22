@@ -187,12 +187,7 @@ const Sidebar = () => {
               
               <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openMenus.devices ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <ul className="py-1">
-                  <li>
-                    <NavLink to="/devices/vehicles" onClick={closeSidebar} className={getSubLinkClass('/devices/vehicles')}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-3"></span>
-                      Vehicle List
-                    </NavLink>
-                  </li>
+
                   <li>
                     <NavLink to="/devices/vehicle-types" onClick={closeSidebar} className={getSubLinkClass('/devices/vehicle-types', true)}>
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-3"></span>
@@ -205,18 +200,7 @@ const Sidebar = () => {
                       Device Models
                     </NavLink>
                   </li>
-                  <li>
-                    <NavLink to="/devices/imei-numbers" onClick={closeSidebar} className={getSubLinkClass('/devices/imei-numbers', true)}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-3"></span>
-                      IMEI Numbers
-                    </NavLink>
-                  </li>
-                  <li>
-                    <NavLink to="/devices/sim-numbers" onClick={closeSidebar} className={getSubLinkClass('/devices/sim-numbers', true)}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-3"></span>
-                      SIM Numbers
-                    </NavLink>
-                  </li>
+
                 </ul>
               </div>
             </li>
