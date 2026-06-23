@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Header from '../../components/layout/Header';
 import { useDeviceModel } from '../../context/DeviceModelContext';
 import { useModal } from '../../context/ModalContext';
@@ -7,7 +7,13 @@ import { useForm } from 'react-hook-form';
 import { MdEdit, MdDelete, MdSearch, MdClose, MdVisibility } from 'react-icons/md';
 
 const DeviceModels = () => {
-  const { deviceModels, addDeviceModel, updateDeviceModel, deleteDeviceModel, toggleStatus, checkDuplicateName } = useDeviceModel();
+  const {
+  deviceModels,
+  addDeviceModel,
+  updateDeviceModel,
+  deleteDeviceModel,
+  isLoading
+} = useDeviceModel();
   const { showModal } = useModal();
   const { formatDate } = useSettings();
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,9 +21,14 @@ const DeviceModels = () => {
   const [editingId, setEditingId] = useState(null);
   const [viewingModel, setViewingModel] = useState(null);
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
-    defaultValues: { status: 'Active' }
-  });
+  const {
+  register,
+  handleSubmit,
+  reset,
+  formState: { errors }
+} = useForm({
+  defaultValues: { status: 'Active' }
+});
 
   const filteredModels = deviceModels.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -39,25 +50,40 @@ const DeviceModels = () => {
     reset({ name: '', manufacturer: '', status: 'Active', description: '' });
   };
 
-  const onSubmit = (data) => {
-    if (checkDuplicateName(data.name, editingId)) {
-      showModal({
-        type: 'error',
-        title: 'Duplicate Device Model',
-        message: `The device model "${data.name}" already exists.`,
-      });
-      return;
-    }
+  const onSubmit = async (data) => {
+  let result;
 
-    if (editingId) {
-      updateDeviceModel(editingId, data);
-      showModal({ type: 'success', title: 'Success', message: 'Device Model updated successfully!' });
-    } else {
-      addDeviceModel(data);
-      showModal({ type: 'success', title: 'Success', message: 'Device Model added successfully!' });
-    }
+  if (editingId) {
+    result = await updateDeviceModel(
+      editingId,
+      data
+    );
+  } else {
+    result = await addDeviceModel(
+      data
+    );
+  }
+
+  if (result.success) {
+    showModal({
+      type: "success",
+      title: "Success",
+      message: editingId
+        ? "Device Model updated successfully!"
+        : "Device Model added successfully!",
+    });
+
     handleReset();
-  };
+  } else {
+    showModal({
+      type: "error",
+      title: "Error",
+      message:
+        result.message ||
+        "Operation failed",
+    });
+  }
+};
 
   const handleDelete = (id) => {
     showModal({
@@ -69,11 +95,22 @@ const DeviceModels = () => {
         { 
           text: 'Delete', 
           style: 'danger', 
-          onClick: () => {
-            deleteDeviceModel(id);
-            if (editingId === id) handleReset();
-            showModal({ type: 'success', title: 'Deleted', message: 'Device model deleted.' });
-          }
+          onClick: async () => {
+  const result =
+    await deleteDeviceModel(id);
+
+  if (result.success) {
+    if (editingId === id)
+      handleReset();
+
+    showModal({
+      type: "success",
+      title: "Deleted",
+      message:
+        "Device model deleted.",
+    });
+  }
+}
         }
       ]
     });
@@ -134,12 +171,15 @@ const DeviceModels = () => {
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            <span 
-                              onClick={() => toggleStatus(model.id)}
-                              className={`px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors inline-block ${model.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}
-                            >
-                              {model.status}
-                            </span>
+                            <span
+  className={`px-3 py-1 rounded-full text-xs font-bold transition-colors inline-block ${
+    model.status === 'Active'
+      ? 'bg-green-100 text-green-700'
+      : 'bg-red-100 text-red-700'
+  }`}
+>
+  {model.status}
+</span>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <button 
@@ -256,7 +296,11 @@ const DeviceModels = () => {
                   form="deviceModelForm"
                   className={`px-4 py-2 text-white rounded font-medium transition-colors ${editingId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#4361ee] hover:bg-[#3b55d1]'}`}
                 >
-                  {editingId ? 'Update Model' : '+ Save Model'}
+                  {isLoading
+ ? "Please Wait..."
+ : editingId
+ ? "Update Model"
+ : "+ Save Model"}
                 </button>
               </div>
 
