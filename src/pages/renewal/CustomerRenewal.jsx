@@ -117,6 +117,7 @@ const CustomerRenewal = () => {
       oldExpiry: vehicle.expiryDate,
       newExpiry: newExpiryDate,
       paymentMode: trimmedData.paymentMode,
+      transactionId: trimmedData.transactionId,
       notes: trimmedData.notes
     });
 
@@ -200,6 +201,7 @@ const CustomerRenewal = () => {
             <fieldset disabled={!vehicle}>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
+                {/* Row 1: Renewal Date, Payment Mode */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Renewal Date *</label>
                   <input 
@@ -213,55 +215,6 @@ const CustomerRenewal = () => {
                     className={getInputClass('renewalDate')} 
                   />
                   {errors.renewalDate && <p className="text-red-500 text-xs mt-1">{errors.renewalDate.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Renewal Amount (₹) *</label>
-                  <NumericInput {...register('renewalAmount', { 
-                      required: 'Renewal Amount is required',
-                      min: { value: 0, message: 'Cannot be negative' }
-                    })} 
-                    className={getInputClass('renewalAmount')} 
-                  defaultToZero />
-                  {errors.renewalAmount && <p className="text-red-500 text-xs mt-1">{errors.renewalAmount.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount Paid (₹) *</label>
-                  <NumericInput {...register('amountPaid', { 
-                      required: 'Amount Paid is required',
-                      min: { value: 0, message: 'Cannot be negative' },
-                      validate: value => (parseFloat(value) || 0) <= (parseFloat(renewalAmount) || 0) || 'Amount Paid cannot exceed Renewal Amount'
-                    })} 
-                    className={getInputClass('amountPaid')} 
-                  defaultToZero />
-                  {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pending Amount (₹)</label>
-                  <div className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium cursor-not-allowed transition-colors">
-                    ₹{pendingAmount}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Validity (Months) *</label>
-                  <select {...register('validity', { required: 'Validity is required' })} className={getInputClass('validity')}>
-                    <option value="">Select</option>
-                    <option value="3 Months">3 Months</option>
-                    <option value="6 Months">6 Months</option>
-                    <option value="12 Months">12 Months</option>
-                    <option value="13 Months">13 Months</option>
-                    <option value="14 Months">14 Months</option>
-                    <option value="15 Months">15 Months</option>
-                    <option value="24 Months">24 Months</option>
-                    <option value="27 Months">27 Months</option>
-                    <option value="36 Months">36 Months</option>
-                    <option value="48 Months">48 Months</option>
-                    <option value="60 Months">60 Months</option>
-                  </select>
-                  {errors.validity && <p className="text-red-500 text-xs mt-1">{errors.validity.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Expiry Date * - Auto</label>
-                  <input type="date" {...register('newExpiryDate')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium cursor-not-allowed transition-colors" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Mode *</label>
@@ -284,6 +237,77 @@ const CustomerRenewal = () => {
                     <option value="CC Payment Gateway">CC Payment Gateway</option>
                   </select>
                   {errors.paymentMode && <p className="text-red-500 text-xs mt-1">{errors.paymentMode.message}</p>}
+                </div>
+
+                {/* Row 2: Transaction ID, Total Renewal Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Transaction ID (Last 6 Digits) *</label>
+                  <input 
+                    type="text" 
+                    maxLength={6}
+                    {...register('transactionId', { 
+                      required: 'Transaction ID is required',
+                      pattern: { value: /^\d{6}$/, message: 'Must be exactly 6 digits' }
+                    })} 
+                    onKeyDown={restrictNumbers}
+                    onPaste={pasteNumbers}
+                    className={getInputClass('transactionId')} 
+                    placeholder="e.g. 456789"
+                  />
+                  {errors.transactionId && <p className="text-red-500 text-xs mt-1">{errors.transactionId.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Renewal Amount (₹) *</label>
+                  <NumericInput {...register('renewalAmount', { 
+                      required: 'Renewal Amount is required',
+                      min: { value: 0, message: 'Cannot be negative' }
+                    })} 
+                    className={getInputClass('renewalAmount')} 
+                  defaultToZero />
+                  {errors.renewalAmount && <p className="text-red-500 text-xs mt-1">{errors.renewalAmount.message}</p>}
+                </div>
+
+                {/* Row 3: Amount Paid, Pending Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount Paid (₹) *</label>
+                  <NumericInput {...register('amountPaid', { 
+                      required: 'Amount Paid is required',
+                      min: { value: 0, message: 'Cannot be negative' },
+                      validate: value => (parseFloat(value) || 0) <= (parseFloat(renewalAmount) || 0) || 'Amount Paid cannot exceed Renewal Amount'
+                    })} 
+                    className={getInputClass('amountPaid')} 
+                  defaultToZero />
+                  {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pending Amount (₹) - Auto</label>
+                  <div className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium cursor-not-allowed transition-colors">
+                    ₹{pendingAmount}
+                  </div>
+                </div>
+
+                {/* Row 4: Validity, New Expiry Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Validity (Months) *</label>
+                  <select {...register('validity', { required: 'Validity is required' })} className={getInputClass('validity')}>
+                    <option value="">Select</option>
+                    <option value="3 Months">3 Months</option>
+                    <option value="6 Months">6 Months</option>
+                    <option value="12 Months">12 Months</option>
+                    <option value="13 Months">13 Months</option>
+                    <option value="14 Months">14 Months</option>
+                    <option value="15 Months">15 Months</option>
+                    <option value="24 Months">24 Months</option>
+                    <option value="27 Months">27 Months</option>
+                    <option value="36 Months">36 Months</option>
+                    <option value="48 Months">48 Months</option>
+                    <option value="60 Months">60 Months</option>
+                  </select>
+                  {errors.validity && <p className="text-red-500 text-xs mt-1">{errors.validity.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Expiry Date - Auto</label>
+                  <input type="date" {...register('newExpiryDate')} readOnly className="w-full border border-gray-200 dark:border-gray-700 rounded px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-medium cursor-not-allowed transition-colors" />
                 </div>
               </div>
               
