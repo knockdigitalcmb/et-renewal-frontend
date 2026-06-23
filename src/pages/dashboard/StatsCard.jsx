@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 
 const StatsCard = ({ title, value, valueColor, linkTo }) => {
   const content = (
-    <div className="bg-white rounded-md p-6 shadow-sm border border-gray-100 flex flex-col items-center justify-center h-[120px] transition-transform hover:-translate-y-1">
-      <h3 className="text-gray-700 font-semibold text-[13px] mb-3 text-center tracking-wide">{title}</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center h-[120px] transition-all hover:-translate-y-1">
+      <h3 className="text-gray-700 dark:text-gray-300 font-semibold text-[13px] mb-3 text-center tracking-wide">{title}</h3>
       <div className={`text-3xl font-bold ${valueColor}`}>
         {value}
       </div>

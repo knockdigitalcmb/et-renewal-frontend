@@ -1,13 +1,15 @@
 import React, { useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import Header from './Header';
+import Header from '../../components/layout/Header';
 import StatsCard from './StatsCard';
-import { useCustomer } from '../context/CustomerContext';
-import { getExpiringCustomers } from '../utils/customerUtils';
+import { useCustomer } from '../../context/CustomerContext';
+import { getExpiringCustomers } from '../../utils/customerUtils';
+import { useSettings } from '../../context/SettingsContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { customers, renewals } = useCustomer();
+  const { formatDate } = useSettings();
 
   const dashboardStats = useMemo(() => {
     const totalCustomers = customers.length;
@@ -27,6 +29,10 @@ const Dashboard = () => {
       }
     });
 
+    renewals.forEach(r => {
+      pendingPayments += (parseFloat(r.pendingAmount) || 0);
+    });
+
     const expiringWithin30Days = getExpiringCustomers(customers).length;
 
     const recentCustomers = [...customers].sort((a, b) => {
@@ -42,22 +48,22 @@ const Dashboard = () => {
   const { totalCustomers, totalRenewals, pendingPayments, expiringWithin30Days, recentCustomers } = dashboardStats;
 
   return (
-    <div className="min-h-screen bg-[#f1f3f5] flex flex-col">
+    <div className="min-h-screen bg-[#f1f3f5] dark:bg-gray-900 flex flex-col transition-colors duration-200">
       <Header />
       
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-[1200px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-            <StatsCard title="Total Customers" value={totalCustomers} valueColor="text-blue-600" linkTo="/customers" />
-            <StatsCard title="Total Renewals" value={totalRenewals} valueColor="text-green-500" linkTo="/renewals" />
-            <StatsCard title="Pending Payments" value={`₹${pendingPayments.toLocaleString()}`} valueColor="text-red-500" linkTo="/customers?payment=pending" />
-            <StatsCard title="Expiring within 30 Days" value={expiringWithin30Days} valueColor="text-orange-500" linkTo="/customers?expiry=30days" />
+            <StatsCard title="Total Customers" value={totalCustomers} valueColor="text-blue-600 dark:text-blue-400" linkTo="/customers" />
+            <StatsCard title="Total Renewals" value={totalRenewals} valueColor="text-green-500 dark:text-green-400" linkTo="/renewals" />
+            <StatsCard title="Pending Payments" value={`₹${pendingPayments.toLocaleString()}`} valueColor="text-red-500 dark:text-red-400" linkTo="/customers?payment=pending" />
+            <StatsCard title="Expiring within 30 Days" value={expiringWithin30Days} valueColor="text-orange-500 dark:text-orange-400" linkTo="/customers?expiry=30days" />
           </div>
           
           {/* Recent Customers Section */}
-          <div className="bg-white rounded-md border border-gray-100 shadow-sm mt-8">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-800">Recent Customers</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-700 shadow-sm mt-8 transition-colors duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white">Recent Customers</h2>
               <button 
                 onClick={() => navigate('/customers/add')}
                 className="bg-[#4361ee] hover:bg-[#3b55d1] text-white px-5 py-2 rounded font-medium text-sm transition-colors shadow-sm"
@@ -69,7 +75,7 @@ const Dashboard = () => {
             <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
                 <thead>
-                  <tr className="bg-gray-50/50 text-gray-500 text-sm border-b border-gray-100">
+                  <tr className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm border-b border-gray-100 dark:border-gray-700">
                     <th className="px-6 py-4 font-medium">Name</th>
                     <th className="px-6 py-4 font-medium">Vehicle No.</th>
                     <th className="px-6 py-4 font-medium">Mobile</th>
@@ -77,7 +83,7 @@ const Dashboard = () => {
                     <th className="px-6 py-4 font-medium">Expiry Date</th>
                   </tr>
                 </thead>
-                <tbody className="text-sm text-gray-600">
+                <tbody className="text-sm text-gray-600 dark:text-gray-300">
                   {recentCustomers.map((customer, index) => {
                     const expiryToUse = customer.vehicles && customer.vehicles.length > 0 
                       ? customer.vehicles[0].expiryDate 
@@ -92,17 +98,17 @@ const Dashboard = () => {
                       <tr 
                         key={index} 
                         onClick={() => navigate(`/customers/view/${customer.id}`)}
-                        className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors cursor-pointer"
+                        className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
                       >
-                        <td className="px-6 py-4 text-gray-800">{customer.name}</td>
+                        <td className="px-6 py-4 text-gray-800 dark:text-gray-200">{customer.name}</td>
                         <td className="px-6 py-4">{customer.vehicleNo}</td>
                         <td className="px-6 py-4">{customer.mobile}</td>
-                        <td className="px-6 py-4">{installToUse}</td>
+                        <td className="px-6 py-4">{formatDate(installToUse)}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${
-                            isExpired ? 'bg-[#fee2e2] text-[#ef4444]' : 'bg-[#e6f8ec] text-[#2ecc71]'
+                            isExpired ? 'bg-[#fee2e2] dark:bg-red-900/30 text-[#ef4444] dark:text-red-400' : 'bg-[#e6f8ec] dark:bg-green-900/30 text-[#2ecc71] dark:text-green-400'
                           }`}>
-                            {expiryToUse}
+                            {formatDate(expiryToUse)}
                           </span>
                         </td>
                       </tr>
@@ -112,8 +118,8 @@ const Dashboard = () => {
               </table>
             </div>
 
-            <div className="p-4 text-right border-t border-gray-100">
-              <Link to="/customers" className="text-blue-600 text-sm hover:text-blue-800 transition-colors">
+            <div className="p-4 text-right border-t border-gray-100 dark:border-gray-700">
+              <Link to="/customers" className="text-blue-600 dark:text-blue-400 text-sm hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
                 View All Customers &rarr;
               </Link>
             </div>

@@ -54,6 +54,7 @@ export const CustomerProvider = ({ children }) => {
             id: Date.now().toString() + '-v1',
             vehicleNo: data.vehicleNumber || '-',
             vehicleType: data.vehicleType || '',
+            platform: data.platform || '',
             imei: data.imeiNumber || '',
             simNumber: data.simNumber || '',
             deviceModel: data.deviceModel || '',

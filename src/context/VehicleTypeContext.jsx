@@ -5,36 +5,40 @@ const VehicleTypeContext = createContext();
 export const useVehicleType = () => useContext(VehicleTypeContext);
 
 export const VehicleTypeProvider = ({ children }) => {
-  const defaultTypes = [
-    { id: 1, name: 'Car', status: 'Active', createdAt: new Date().toISOString().split('T')[0] },
-    { id: 2, name: 'Bike', status: 'Active', createdAt: new Date().toISOString().split('T')[0] },
-    { id: 3, name: 'Bus', status: 'Active', createdAt: new Date().toISOString().split('T')[0] },
-    { id: 4, name: 'Lorry', status: 'Active', createdAt: new Date().toISOString().split('T')[0] },
-    { id: 5, name: 'Van', status: 'Active', createdAt: new Date().toISOString().split('T')[0] },
-    { id: 6, name: 'Auto', status: 'Active', createdAt: new Date().toISOString().split('T')[0] },
-  ];
-
   const [vehicleTypes, setVehicleTypes] = useState(() => {
     const saved = localStorage.getItem('crm_vehicle_types');
-    return saved ? JSON.parse(saved) : defaultTypes;
+    if (saved) {
+      return JSON.parse(saved);
+    } else {
+      // Default initialization
+      return [
+        { id: 1, name: 'Car', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+        { id: 2, name: 'Bike', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+        { id: 3, name: 'Bus', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+        { id: 4, name: 'Lorry', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+        { id: 5, name: 'Van', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+        { id: 6, name: 'Auto', status: 'Active', createdDate: new Date().toISOString().split('T')[0] }
+      ];
+    }
   });
+
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('crm_vehicle_types', JSON.stringify(vehicleTypes));
   }, [vehicleTypes]);
 
-  const [isLoading, setIsLoading] = useState(false);
-
   const addVehicleType = async (data) => {
     setIsLoading(true);
     return new Promise((resolve) => {
       setTimeout(() => {
-        const newType = { 
-          ...data, 
+        const newVehicleType = { 
           id: Date.now(), 
-          createdAt: new Date().toISOString().split('T')[0] 
+          name: data.name, 
+          status: data.status || 'Active', 
+          createdDate: new Date().toISOString().split('T')[0] 
         };
-        setVehicleTypes(prev => [newType, ...prev]);
+        setVehicleTypes(prev => [newVehicleType, ...prev]);
         setIsLoading(false);
         resolve({ success: true });
       }, 300);
@@ -45,7 +49,7 @@ export const VehicleTypeProvider = ({ children }) => {
     setIsLoading(true);
     return new Promise((resolve) => {
       setTimeout(() => {
-        setVehicleTypes(prev => prev.map(type => type.id === parseInt(id) ? { ...type, ...data } : type));
+        setVehicleTypes(prev => prev.map(vt => vt.id === parseInt(id) ? { ...vt, ...data } : vt));
         setIsLoading(false);
         resolve({ success: true });
       }, 300);
@@ -56,7 +60,7 @@ export const VehicleTypeProvider = ({ children }) => {
     setIsLoading(true);
     return new Promise((resolve) => {
       setTimeout(() => {
-        setVehicleTypes(prev => prev.filter(type => type.id !== parseInt(id)));
+        setVehicleTypes(prev => prev.filter(vt => vt.id !== parseInt(id)));
         setIsLoading(false);
         resolve({ success: true });
       }, 300);
@@ -64,12 +68,7 @@ export const VehicleTypeProvider = ({ children }) => {
   };
 
   const getVehicleType = (id) => {
-    return vehicleTypes.find(type => type.id === parseInt(id));
-  };
-
-  const checkDuplicateVehicleType = (name, excludeId = null) => {
-    const lowerName = name.toLowerCase().trim();
-    return vehicleTypes.some(t => t.name.toLowerCase().trim() === lowerName && t.id !== excludeId);
+    return vehicleTypes.find(vt => vt.id === parseInt(id));
   };
 
   return (
@@ -78,8 +77,7 @@ export const VehicleTypeProvider = ({ children }) => {
       addVehicleType, 
       updateVehicleType, 
       deleteVehicleType, 
-      getVehicleType,
-      checkDuplicateVehicleType,
+      getVehicleType, 
       isLoading 
     }}>
       {children}

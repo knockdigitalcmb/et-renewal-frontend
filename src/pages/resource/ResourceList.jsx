@@ -1,17 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useResource } from '../context/ResourceContext';
-import Header from '../components/Header';
+import { useResource } from '../../context/ResourceContext';
+import { useModal } from '../../context/ModalContext';
+import { useSettings } from '../../context/SettingsContext';
+import Header from '../../components/layout/Header';
 import { MdSearch, MdVisibility, MdEdit, MdDelete } from 'react-icons/md';
 
 const ResourceList = () => {
   const navigate = useNavigate();
   const { resources, deleteResource } = useResource();
+  const { showModal } = useModal();
+  const { formatDate } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [resourceToDelete, setResourceToDelete] = useState(null);
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
@@ -30,29 +30,34 @@ const ResourceList = () => {
   }, [resources, searchQuery]);
 
   const confirmDelete = (id) => {
-    setResourceToDelete(id);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (resourceToDelete) {
-      await deleteResource(resourceToDelete);
-      setIsModalOpen(false);
-      setResourceToDelete(null);
-    }
+    showModal({
+      type: 'confirm',
+      title: 'Confirm Deletion',
+      message: 'Are you sure you want to delete this resource?',
+      buttons: [
+        { text: 'Cancel', style: 'secondary' },
+        { 
+          text: 'Delete', 
+          style: 'danger', 
+          onClick: async () => {
+            await deleteResource(id);
+          }
+        }
+      ]
+    });
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f3f5] flex flex-col">
+    <div className="min-h-screen bg-[#f1f3f5] dark:bg-gray-900 flex flex-col transition-colors duration-200">
       <Header />
       
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-[1400px] mx-auto">
           
-          <div className="bg-white rounded-md shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6 transition-colors duration-200">
             
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-gray-800">Resource List</h2>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white">Resource List</h2>
               <button 
                 onClick={() => navigate('/resources/add')}
                 className="bg-[#4361ee] hover:bg-[#3b55d1] text-white px-5 py-2 rounded font-medium text-sm transition-colors shadow-sm"
@@ -67,17 +72,17 @@ const ResourceList = () => {
                 placeholder="Search by Name, Nickname, Designation, Mobile..." 
                 value={searchQuery}
                 onChange={handleSearch}
-                className="max-w-[400px] w-full px-4 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-500"
+                className="max-w-[400px] w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 transition-colors"
               />
               <button className="bg-[#3498db] hover:bg-[#2980b9] text-white px-6 py-2 rounded text-sm font-medium transition-colors">
                 Search
               </button>
             </div>
 
-            <div className="w-full overflow-x-auto border border-gray-100 rounded">
+            <div className="w-full overflow-x-auto border border-gray-100 dark:border-gray-700 rounded transition-colors duration-200">
               <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1000px]">
                 <thead>
-                  <tr className="bg-[#f8f9fa] text-gray-700 text-sm border-b border-gray-100">
+                  <tr className="bg-[#f8f9fa] dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 text-sm border-b border-gray-100 dark:border-gray-700">
                     <th className="px-6 py-4 font-semibold">Employee Name</th>
                     <th className="px-6 py-4 font-semibold">Nickname</th>
                     <th className="px-6 py-4 font-semibold">Designation</th>
@@ -88,17 +93,17 @@ const ResourceList = () => {
                     <th className="px-6 py-4 font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="text-sm text-gray-700">
+                <tbody className="text-sm text-gray-700 dark:text-gray-300">
                   {filteredResources.map((row) => (
-                    <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <tr key={row.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                       <td className="px-6 py-4">{row.employeeName}</td>
                       <td className="px-6 py-4">{row.nickname}</td>
                       <td className="px-6 py-4">{row.designation}</td>
-                      <td className="px-6 py-4">{row.doj}</td>
-                      <td className="px-6 py-4">{row.dor || '-'}</td>
+                      <td className="px-6 py-4">{formatDate(row.doj)}</td>
+                      <td className="px-6 py-4">{row.dor ? formatDate(row.dor) : '-'}</td>
                       <td className="px-6 py-4">{row.mobileNumber}</td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#e6f8ec] text-[#2ecc71] tracking-wide">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${row.status === 'Active' ? 'bg-[#e6f8ec] dark:bg-green-900/30 text-[#2ecc71] dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400'}`}>
                           {row.status}
                         </span>
                       </td>
@@ -131,7 +136,7 @@ const ResourceList = () => {
                   ))}
                   {filteredResources.length === 0 && (
                     <tr>
-                      <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                         No resources found.
                       </td>
                     </tr>
@@ -144,30 +149,6 @@ const ResourceList = () => {
 
         </div>
       </main>
-
-      {/* Delete Confirmation Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Confirm Deletion</h3>
-            <p className="text-gray-600 mb-6 text-sm">Are you sure you want to delete this resource?</p>
-            <div className="flex justify-end space-x-3">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-medium text-sm transition-colors shadow-sm"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

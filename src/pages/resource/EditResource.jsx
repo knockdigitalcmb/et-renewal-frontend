@@ -1,19 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import NumericInput from '../../components/common/NumericInput';
 import { useForm, useWatch } from 'react-hook-form';
-import { useResource } from '../context/ResourceContext';
-import Header from '../components/Header';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useResource } from '../../context/ResourceContext';
+import { useModal } from '../../context/ModalContext';
+import Header from '../../components/layout/Header';
 import {
   restrictAlphabetsSpaces, restrictNumbers, preventManualTyping,
   pasteAlphabetsSpaces, pasteNumbers, trimData, regexPatterns,
   getTodayDateString, validatePastDate
-} from '../utils/validationUtils';
+} from '../../utils/validationUtils';
 
-const AddResource = () => {
+const EditResource = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { addResource, isLoading } = useResource();
+  const { showModal } = useModal();
+  const { getResource, updateResource, isLoading } = useResource();
 
-  const { register, handleSubmit, watch, formState: { errors, dirtyFields } } = useForm({
+  const { register, handleSubmit, reset, watch, formState: { errors, dirtyFields } } = useForm({
     defaultValues: {
       employeeName: '',
       nickname: '',
@@ -25,17 +29,33 @@ const AddResource = () => {
     mode: 'onChange'
   });
 
+  useEffect(() => {
+    const data = getResource(id);
+    if (data) {
+      reset(data);
+    } else {
+      navigate('/resources/list');
+    }
+  }, [id, getResource, navigate, reset]);
+
   const onSubmit = async (data) => {
     const trimmedData = trimData(data);
-    const res = await addResource(trimmedData);
+    const res = await updateResource(id, trimmedData);
     if (res.success) {
-      alert("Resource saved successfully!");
-      navigate('/resources/list'); 
+      showModal({
+        type: 'success',
+        title: 'Success',
+        message: 'Resource updated successfully!',
+        buttons: [
+          { text: 'View List', style: 'primary', onClick: () => navigate('/resources/list') },
+          { text: 'Close', style: 'secondary' }
+        ]
+      });
     }
   };
 
   const InputLabel = ({ label, required }) => (
-    <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
+    <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
       {label} {required && '*'}
     </label>
   );
@@ -46,26 +66,26 @@ const AddResource = () => {
   };
 
   const getInputClass = (fieldName) => {
-    const baseClass = "w-full h-[44px] px-3 border rounded-[4px] focus:outline-none focus:ring-1 text-sm transition-colors";
-    if (errors[fieldName]) return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50`;
-    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50`;
+    const baseClass = "w-full h-[44px] px-3 border rounded-[4px] focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200";
+    if (errors[fieldName]) return `${baseClass} border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/20`;
+    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 dark:border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50 dark:bg-green-900/20`;
     return `${baseClass} border-gray-200 focus:border-blue-500 focus:ring-blue-500`;
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f3f5] flex flex-col">
+    <div className="min-h-screen bg-[#f1f3f5] dark:bg-gray-900 flex flex-col transition-colors duration-200">
       <Header />
       
       <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto bg-white rounded-md shadow-sm border border-gray-100">
+        <div className="max-w-[1400px] mx-auto bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-200">
           
-          <div className="flex justify-between items-center p-6 border-b border-gray-100">
-            <h2 className="text-base font-bold text-gray-800">Add New Resource</h2>
+          <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-base font-bold text-gray-800 dark:text-white">Edit Resource</h2>
             <button 
               onClick={() => navigate('/resources/list')}
-              className="bg-[#3498db] hover:bg-[#2980b9] text-white px-5 py-2 rounded-[4px] font-medium text-sm transition-colors shadow-sm"
+              className="px-5 py-2 border border-gray-300 dark:border-gray-600 rounded-[4px] font-medium text-sm transition-colors shadow-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              Back to List
+              Cancel
             </button>
           </div>
 
@@ -116,14 +136,11 @@ const AddResource = () => {
                 </div>
                 <div>
                   <InputLabel label="Mobile Number" required />
-                  <input 
-                    type="text" 
+                  <NumericInput  
                     {...register('mobileNumber', { 
                       required: 'Mobile Number is required',
                       pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' }
                     })}
-                    onKeyDown={restrictNumbers}
-                    onPaste={pasteNumbers}
                     className={getInputClass('mobileNumber')}
                   />
                   <ErrorMsg error={errors.mobileNumber} />
@@ -164,7 +181,7 @@ const AddResource = () => {
                 disabled={isLoading || Object.keys(errors).length > 0}
                 className={`w-full h-[48px] rounded-[6px] text-white font-medium shadow-sm transition-colors ${Object.keys(errors).length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#4361ee] hover:bg-[#3411b0]'}`}
               >
-                {isLoading ? 'Saving...' : 'Save Resource'}
+                {isLoading ? 'Saving...' : 'Save Changes'}
               </button>
 
             </form>
@@ -175,4 +192,4 @@ const AddResource = () => {
   );
 };
 
-export default AddResource;
+export default EditResource;
