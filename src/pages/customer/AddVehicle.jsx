@@ -28,22 +28,45 @@ const AddVehicle = () => {
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors, dirtyFields } } = useForm({
     defaultValues: {
-      devicePrice: 0,
-      simPrice: 0,
+      totalSaleAmount: 0,
+      deviceAmount: 0,
+      simAmount: 0,
+      softwareAmount: 0,
+      technicianAmount: 0,
+      courierAmount: 0,
       amountPaid: 0,
       validity: 12
     },
     mode: 'onChange'
   });
 
-  const devicePrice = useWatch({ control, name: 'devicePrice', defaultValue: 0 });
-  const simPrice = useWatch({ control, name: 'simPrice', defaultValue: 0 });
+  const totalSaleAmount = useWatch({ control, name: 'totalSaleAmount', defaultValue: 0 });
+  const deviceAmount = useWatch({ control, name: 'deviceAmount', defaultValue: 0 });
+  const simAmount = useWatch({ control, name: 'simAmount', defaultValue: 0 });
+  const softwareAmount = useWatch({ control, name: 'softwareAmount', defaultValue: 0 });
+  const technicianAmount = useWatch({ control, name: 'technicianAmount', defaultValue: 0 });
+  const courierAmount = useWatch({ control, name: 'courierAmount', defaultValue: 0 });
   const amountPaid = useWatch({ control, name: 'amountPaid', defaultValue: 0 });
   const installDate = useWatch({ control, name: 'installDate' });
   const validity = useWatch({ control, name: 'validity', defaultValue: 0 });
 
   // Auto Calculations
+  const parseNum = (val) => {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
   useEffect(() => {
+    const total = parseNum(deviceAmount) + parseNum(simAmount) + parseNum(softwareAmount) + parseNum(technicianAmount) + parseNum(courierAmount);
+    setValue('totalAmount', total);
+    
+    if (parseNum(totalSaleAmount) === total) {
+      const pending = total - parseNum(amountPaid);
+      setValue('pendingAmount', pending > 0 ? pending : 0);
+    } else {
+      setValue('pendingAmount', 0);
+    }
+  }, [totalSaleAmount, deviceAmount, simAmount, softwareAmount, technicianAmount, courierAmount, amountPaid, setValue]);
     const total = (parseFloat(devicePrice) || 0) + (parseFloat(simPrice) || 0);
     setValue('totalPayment', total);
 
@@ -81,6 +104,16 @@ const AddVehicle = () => {
       return;
     }
 
+    const totalSaleAmountNum = parseNum(trimmedData.totalSaleAmount);
+    const totalAmountNum = parseNum(trimmedData.totalAmount);
+
+    if (totalSaleAmountNum !== totalAmountNum) {
+      showModal({ type: 'error', title: 'Validation Error', message: 'Total Sale Amount must match Total Amount' });
+      return;
+    }
+
+    const pendingAmount = totalAmountNum - parseNum(trimmedData.amountPaid);
+    
     const totalPayment = (parseFloat(trimmedData.devicePrice) || 0) + (parseFloat(trimmedData.simPrice) || 0);
     const pendingAmount = totalPayment - (parseFloat(trimmedData.amountPaid) || 0);
 
@@ -97,7 +130,7 @@ const AddVehicle = () => {
 
     const payload = {
       ...trimmedData,
-      totalPayment,
+      totalAmount: totalAmountNum,
       pendingAmount: pendingAmount > 0 ? pendingAmount : 0,
       expiryDate
     };
@@ -147,6 +180,13 @@ const AddVehicle = () => {
                   <input
                     {...register('vehicleNo', {
                       required: 'Vehicle Number is required',
+                      pattern: { 
+                        value: /^(TN\d{2}[A-Z]{2}\d{4}|TN\d{2}[A-Z]\d{4}|TN\d{2}\d{4})$/, 
+                        message: 'Enter valid Vehicle Number' 
+                      }
+                    })} 
+                    onInput={(e) => e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')}
+                    className={getInputClass('vehicleNo')} 
                       pattern: { value: regexPatterns.vehicleNumber, message: 'Only alphabets and numbers allowed' }
                     })}
                     onKeyDown={restrictAlphanumeric}
@@ -227,6 +267,12 @@ const AddVehicle = () => {
                   </select>
                   {errors.deviceModel && <p className="text-red-500 text-xs mt-1">{errors.deviceModel.message}</p>}
                 </div>
+              </div>
+
+              {/* Financial Details Section */}
+              <div className="bg-white rounded-md shadow-sm p-6 sm:p-8 border border-gray-100 mb-6">
+                <div className="flex items-center mb-6 pb-3 border-b border-gray-100">
+                  <h3 className="text-base font-bold text-gray-800">Financial Details</h3>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1">Device Price (₹) *</label>
                   <NumericInput step="0.01"
@@ -249,12 +295,112 @@ const AddVehicle = () => {
                     defaultToZero />
                   {errors.simPrice && <p className="text-red-500 text-xs mt-1">{errors.simPrice.message}</p>}
                 </div>
-                <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Total Payment (₹) - <span className="italic font-normal">Auto</span></label>
-                  <input {...register('totalPayment')} readOnly className="w-full border border-gray-200 rounded px-3 py-2 text-[14px] bg-gray-100 cursor-not-allowed text-gray-600 font-semibold" />
-                </div>
-              </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Payment Mode *</label>
+                    <select {...register('paymentMode', { required: 'Payment Mode is required' })} className={getInputClass('paymentMode')}>
+                      <option value="">Select Mode</option>
+                      <option value="ET Gpay">ET Gpay</option>
+                      <option value="ET Phonepe">ET Phonepe</option>
+                      <option value="ET Paytm">ET Paytm</option>
+                      <option value="ET Account">ET Account</option>
+                      <option value="ET Cheque">ET Cheque</option>
+                      <option value="8002 Gpay">8002 Gpay</option>
+                      <option value="8002 Paytm">8002 Paytm</option>
+                      <option value="8002 PhonePe">8002 PhonePe</option>
+                      <option value="8002 Account">8002 Account</option>
+                      <option value="WATI Gpay">WATI Gpay</option>
+                      <option value="WATI Paytm">WATI Paytm</option>
+                      <option value="WATI PhonePe">WATI PhonePe</option>
+                      <option value="WATI Account">WATI Account</option>
+                      <option value="Cash">Cash</option>
+                      <option value="CC Payment Gateway">CC Payment Gateway</option>
+                    </select>
+                    {errors.paymentMode && <p className="text-red-500 text-xs mt-1">{errors.paymentMode.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Transaction ID (Last 6 Digits) *</label>
+                    <input 
+                      type="text" 
+                      maxLength={6}
+                      {...register('transactionId', { 
+                        required: 'Transaction ID is required',
+                        pattern: { value: /^\d{6}$/, message: 'Please enter exactly 6 digits.' }
+                      })}
+                      onKeyDown={restrictNumbers}
+                      onPaste={pasteNumbers}
+                      className={getInputClass('transactionId')}
+                      placeholder="e.g. 987654"
+                    />
+                    {errors.transactionId && <p className="text-red-500 text-xs mt-1">{errors.transactionId.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Total Sale Amount (₹) *</label>
+                    <NumericInput {...register('totalSaleAmount', { 
+                        required: 'Total Sale Amount is required',
+                        min: { value: 0, message: 'Cannot be negative' }
+                      })}
+                      className={getInputClass('totalSaleAmount')}
+                      defaultToZero 
+                    />
+                    {errors.totalSaleAmount && <p className="text-red-500 text-xs mt-1">{errors.totalSaleAmount.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Device Amount (₹) *</label>
+                    <NumericInput step="0.01" 
+                      {...register('deviceAmount', { 
+                        required: 'Device Amount is required',
+                        min: { value: 0, message: 'Cannot be negative' }
+                      })} 
+                      className={getInputClass('deviceAmount')} 
+                    defaultToZero />
+                    {errors.deviceAmount && <p className="text-red-500 text-xs mt-1">{errors.deviceAmount.message}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">SIM Amount (₹) *</label>
+                    <NumericInput step="0.01" 
+                      {...register('simAmount', { 
+                        required: 'SIM Amount is required',
+                        min: { value: 0, message: 'Cannot be negative' }
+                      })} 
+                      className={getInputClass('simAmount')} 
+                    defaultToZero />
+                    {errors.simAmount && <p className="text-red-500 text-xs mt-1">{errors.simAmount.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Software Amount (₹)</label>
+                    <NumericInput step="0.01" 
+                      {...register('softwareAmount', { 
+                        min: { value: 0, message: 'Cannot be negative' }
+                      })} 
+                      className={getInputClass('softwareAmount')} 
+                    defaultToZero />
+                    {errors.softwareAmount && <p className="text-red-500 text-xs mt-1">{errors.softwareAmount.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Technician Amount (₹)</label>
+                    <NumericInput step="0.01" 
+                      {...register('technicianAmount', { 
+                        min: { value: 0, message: 'Cannot be negative' }
+                      })} 
+                      className={getInputClass('technicianAmount')} 
+                    defaultToZero />
+                    {errors.technicianAmount && <p className="text-red-500 text-xs mt-1">{errors.technicianAmount.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Courier Amount (₹)</label>
+                    <NumericInput step="0.01" 
+                      {...register('courierAmount', { 
+                        min: { value: 0, message: 'Cannot be negative' }
+                      })} 
+                      className={getInputClass('courierAmount')} 
+                    defaultToZero />
+                    {errors.courierAmount && <p className="text-red-500 text-xs mt-1">{errors.courierAmount.message}</p>}
+                  </div>
               {/* Row 3 */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
@@ -268,33 +414,37 @@ const AddVehicle = () => {
                     defaultToZero />
                   {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
                 </div>
-                <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Pending Amount (₹) - <span className="italic font-normal">Auto</span></label>
-                  <input {...register('pendingAmount')} readOnly className="w-full border border-gray-200 rounded px-3 py-2 text-[14px] bg-gray-100 cursor-not-allowed text-gray-600 font-semibold" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Total Amount (₹) - <span className="italic font-normal text-blue-500">Auto</span></label>
+                    <input {...register('totalAmount')} readOnly className="w-full border border-gray-200 rounded px-3 py-2 text-[14px] bg-gray-100 cursor-not-allowed text-gray-600 font-bold" />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Amount Paid (₹) *</label>
+                    <NumericInput step="0.01" 
+                      {...register('amountPaid', { 
+                        required: 'Amount Paid is required',
+                        min: { value: 0, message: 'Cannot be negative' }
+                      })} 
+                      className={getInputClass('amountPaid')} 
+                    defaultToZero />
+                    {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Pending Amount (₹) - <span className="italic font-normal text-blue-500">Auto</span></label>
+                    <input {...register('pendingAmount')} readOnly className={`w-full border border-gray-200 rounded px-3 py-2 text-[14px] bg-gray-100 cursor-not-allowed font-bold ${watch('pendingAmount') > 0 ? 'text-red-500' : 'text-green-600'}`} />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Payment Mode *</label>
-                  <select {...register('paymentMode', { required: 'Payment Mode is required' })} className={getInputClass('paymentMode')}>
-                    <option value="">Select</option>
-                    <option value="ET Gpay">ET Gpay</option>
-                    <option value="ET Phonepe">ET Phonepe</option>
-                    <option value="ET Paytm">ET Paytm</option>
-                    <option value="ET Account">ET Account</option>
-                    <option value="ET Cheque">ET Cheque</option>
-                    <option value="8002 Gpay">8002 Gpay</option>
-                    <option value="8002 Paytm">8002 Paytm</option>
-                    <option value="8002 PhonePe">8002 PhonePe</option>
-                    <option value="8002 Account">8002 Account</option>
-                    <option value="WATI Gpay">WATI Gpay</option>
-                    <option value="WATI Paytm">WATI Paytm</option>
-                    <option value="WATI PhonePe">WATI PhonePe</option>
-                    <option value="WATI Account">WATI Account</option>
-                    <option value="Cash">Cash</option>
-                    <option value="CC Payment Gateway">CC Payment Gateway</option>
-                  </select>
-                  {errors.paymentMode && <p className="text-red-500 text-xs mt-1">{errors.paymentMode.message}</p>}
+              </div>
+
+              {/* Installation Details Section */}
+              <div className="bg-white rounded-md shadow-sm p-6 sm:p-8 border border-gray-100 mb-6">
+                <div className="flex items-center mb-6 pb-3 border-b border-gray-100">
+                  <h3 className="text-base font-bold text-gray-800">Installation Details</h3>
                 </div>
-                <div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <label className="block text-[13px] font-semibold text-gray-700 mb-1">Installation Person *</label>
                   <input
                     {...register('installPerson', {
@@ -366,6 +516,10 @@ const AddVehicle = () => {
               </div>
 
               <div className="pt-4">
+                <button 
+                  type="submit" 
+                  disabled={Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))}
+                  className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${(Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#2ecc71] hover:bg-[#27ae60]'}`}
                 <button
                   type="submit"
                   disabled={Object.keys(errors).length > 0}
