@@ -32,12 +32,12 @@ const ViewCustomer = () => {
               Customer Details: {customer.name}
             </h3>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-              <button 
+              {/* <button 
                 onClick={() => navigate(`/customers/edit/${id}`)}
                 className="w-full sm:w-auto bg-[#f39c12] text-white px-4 py-2 text-sm font-medium hover:bg-[#e67e22] transition-colors rounded text-center"
               >
                 Edit Customer / Vehicles
-              </button>
+              </button> */}
               <button 
                 onClick={() => navigate('/customers')}
                 className="w-full sm:w-auto bg-[#3498db] text-white px-4 py-2 text-sm font-medium hover:bg-[#2980b9] transition-colors rounded text-center"
@@ -144,7 +144,6 @@ const ViewCustomer = () => {
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Validity</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Expiry Date</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending Amount</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,22 +172,6 @@ const ViewCustomer = () => {
                               ₹{vehicle.pendingAmount}
                             </span>
                           )}
-                        </td>
-                        <td className="p-3 flex space-x-2">
-                          <button 
-                            title="Renewal"
-                            onClick={() => navigate(`/customers/renewal/${vehicle.id}`)}
-                            className="bg-[#2ecc71] hover:bg-[#27ae60] text-white p-1.5 rounded transition-colors"
-                          >
-                            <FiRefreshCw size={14} />
-                          </button>
-                          <button 
-                            title="Edit Vehicle"
-                            onClick={() => navigate(`/customers/vehicle/edit/${vehicle.id}`)}
-                            className="bg-[#3498db] hover:bg-[#2980b9] text-white p-1.5 rounded transition-colors"
-                          >
-                            <FiEdit size={14} />
-                          </button>
                         </td>
                       </tr>
                     ))
