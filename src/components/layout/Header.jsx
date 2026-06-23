@@ -37,6 +37,39 @@ const Header = () => {
     };
   }, []);
 
+  const handleLogout = async () => {
+  try {
+    const accessToken =
+      localStorage.getItem("accessToken");
+
+    const refreshToken =
+      localStorage.getItem("refreshToken");
+
+    await fetch(
+      "http://103.235.105.121:3000/api/v1/auth/logout",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          refreshToken,
+        }),
+      }
+    );
+  } catch (error) {
+    console.error("Logout Error:", error);
+  } finally {
+    clearSession();
+
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+
+    navigate("/login");
+  }
+};
+  
   const handleLogoutClick = () => {
     setIsDropdownOpen(false);
     showModal({
@@ -45,14 +78,11 @@ const Header = () => {
       message: 'Are you sure you want to logout?',
       buttons: [
         { text: 'Cancel', style: 'secondary' },
-        { 
-          text: 'Logout', 
-          style: 'danger', 
-          onClick: () => {
-            clearSession();
-            navigate('/login');
-          }
-        }
+        {
+  text: 'Logout',
+  style: 'danger',
+  onClick: handleLogout
+}
       ]
     });
   };

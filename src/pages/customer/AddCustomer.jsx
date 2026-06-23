@@ -54,6 +54,7 @@ const AddCustomer = () => {
       softwareCharge: 0,
       technicianCharge: 0,
       courierCharge: 0,
+      totalSaleAmount: 0,
       amountPaid: 0,
       notes: ''
     },
@@ -71,6 +72,7 @@ const AddCustomer = () => {
   const softwareCharge = useWatch({ control, name: 'softwareCharge' }) || 0;
   const technicianCharge = useWatch({ control, name: 'technicianCharge' }) || 0;
   const courierCharge = useWatch({ control, name: 'courierCharge' }) || 0;
+  const totalSaleAmount = useWatch({ control, name: 'totalSaleAmount' }) || 0;
   const amountPaid = useWatch({ control, name: 'amountPaid' }) || 0;
   const installationDate = useWatch({ control, name: 'installationDate' });
   const validity = useWatch({ control, name: 'validity' });
@@ -112,7 +114,7 @@ const AddCustomer = () => {
   };
   
   const totalAmount = parseNum(deviceCharge) + parseNum(simCharge) + parseNum(softwareCharge) + parseNum(technicianCharge) + parseNum(courierCharge);
-  const pendingAmount = totalAmount - parseNum(amountPaid);
+  const pendingAmount = parseNum(totalSaleAmount) === totalAmount ? totalAmount - parseNum(amountPaid) : 0;
 
   useEffect(() => {
     setValue('totalAmount', totalAmount);
@@ -159,6 +161,11 @@ const AddCustomer = () => {
       }
     }
 
+    if (parseNum(trimmedData.totalSaleAmount) !== totalAmount) {
+      showModal({ type: 'error', title: 'Validation Error', message: "Total Sale Amount must match Total Amount" });
+      return;
+    }
+
     if (!selectedExistingCustomer) {
       const exactMatch = customers.find(c =>
         c.name.toLowerCase() === trimmedData.UserName.toLowerCase() &&
@@ -184,6 +191,7 @@ const AddCustomer = () => {
         softwareCharge: trimmedData.softwareCharge || 0,
         technicianCharge: trimmedData.technicianCharge || 0,
         courierCharge: trimmedData.courierCharge || 0,
+        totalSaleAmount: parseNum(trimmedData.totalSaleAmount) || 0,
         totalAmount: totalAmount || 0,
         transactionRefNo: trimmedData.transactionRefNo || '',
         amountPaid: trimmedData.amountPaid || 0,
@@ -451,10 +459,12 @@ const AddCustomer = () => {
                         type="text"
                         {...register(`vehicles.${index}.vehicleNumber`, {
                           required: 'Vehicle Number is required',
-                          pattern: { value: regexPatterns.vehicleNumber, message: 'Only alphabets and numbers allowed' }
+                          pattern: { value: regexPatterns.vehicleNumber, message: 'Enter valid Vehicle Number' }
                         })}
-                        onKeyDown={restrictAlphanumeric}
-                        onPaste={pasteAlphanumeric}
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+                          setValue(`vehicles.${index}.vehicleNumber`, val, { shouldValidate: true, shouldDirty: true });
+                        }}
                         className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
                           errors.vehicles?.[index]?.vehicleNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
                         }`}
@@ -585,96 +595,6 @@ const AddCustomer = () => {
             
             {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-              
-              <div>
-                <InputLabel label="Device Charge (₹)" required />
-                <NumericInput {...register('deviceCharge', { 
-                    required: 'Device Charge is required',
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
-                  className={getInputClass('deviceCharge')}
-                  defaultToZero 
-                />
-                <ErrorMsg error={errors.deviceCharge} />
-              </div>
-              <div>
-                <InputLabel label="SIM Charge (₹)" required />
-                <NumericInput {...register('simCharge', { 
-                    required: 'SIM Charge is required',
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
-                  className={getInputClass('simCharge')}
-                  defaultToZero 
-                />
-                <ErrorMsg error={errors.simCharge} />
-              </div>
-              <div>
-                <InputLabel label="Software Charge (₹)" />
-                <NumericInput {...register('softwareCharge', { 
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
-                  className={getInputClass('softwareCharge')}
-                  defaultToZero 
-                />
-                <ErrorMsg error={errors.softwareCharge} />
-              </div>
-              <div>
-                <InputLabel label="Technician Charge (₹)" />
-                <NumericInput {...register('technicianCharge', { 
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
-                  className={getInputClass('technicianCharge')}
-                  defaultToZero 
-                />
-                <ErrorMsg error={errors.technicianCharge} />
-              </div>
-            </div>
-
-            {/* Row 2 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-              <div>
-                <InputLabel label="Courier Charge (₹)" />
-                <NumericInput {...register('courierCharge', { 
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
-                  className={getInputClass('courierCharge')}
-                  defaultToZero 
-                />
-                <ErrorMsg error={errors.courierCharge} />
-              </div>
-              <div>
-                <InputLabel label="Total Amount (₹)" isAuto />
-                <input 
-                  type="text" 
-                  readOnly
-                  value={totalAmount}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-bold transition-colors"
-                />
-              </div>
-              <div>
-                <InputLabel label="Amount Paid (₹)" required />
-                <NumericInput {...register('amountPaid', { 
-                    required: 'Amount Paid is required',
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
-                  className={getInputClass('amountPaid')}
-                  defaultToZero 
-                />
-                <ErrorMsg error={errors.amountPaid} />
-              </div>
-              <div>
-                <InputLabel label="Pending Amount (₹)" isAuto />
-                <input 
-                  type="text" 
-                  readOnly
-                  value={pendingAmount}
-                  className={`w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-sm font-bold transition-colors cursor-not-allowed ${pendingAmount > 0 ? 'text-red-500' : 'text-green-600'}`}
-                />
-              </div>
-            </div>
-
-            {/* Row 3 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
                 <InputLabel label="Payment Mode" required />
                 <select 
@@ -715,6 +635,106 @@ const AddCustomer = () => {
                   placeholder="e.g. 987654"
                 />
                 <ErrorMsg error={errors.transactionRefNo} />
+              </div>
+              <div>
+                <InputLabel label="Total Sale Amount (₹)" required />
+                <NumericInput {...register('totalSaleAmount', { 
+                    required: 'Total Sale Amount is required',
+                    min: { value: 0, message: 'Cannot be negative' }
+                  })}
+                  className={getInputClass('totalSaleAmount')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.totalSaleAmount} />
+              </div>
+              <div>
+                <InputLabel label="Device Amount (₹)" required />
+                <NumericInput {...register('deviceCharge', { 
+                    required: 'Device Amount is required',
+                    min: { value: 0, message: 'Cannot be negative' }
+                  })}
+                  className={getInputClass('deviceCharge')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.deviceCharge} />
+              </div>
+            </div>
+
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              <div>
+                <InputLabel label="SIM Amount (₹)" required />
+                <NumericInput {...register('simCharge', { 
+                    required: 'SIM Amount is required',
+                    min: { value: 0, message: 'Cannot be negative' }
+                  })}
+                  className={getInputClass('simCharge')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.simCharge} />
+              </div>
+              <div>
+                <InputLabel label="Software Amount (₹)" />
+                <NumericInput {...register('softwareCharge', { 
+                    min: { value: 0, message: 'Cannot be negative' }
+                  })}
+                  className={getInputClass('softwareCharge')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.softwareCharge} />
+              </div>
+              <div>
+                <InputLabel label="Technician Amount (₹)" />
+                <NumericInput {...register('technicianCharge', { 
+                    min: { value: 0, message: 'Cannot be negative' }
+                  })}
+                  className={getInputClass('technicianCharge')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.technicianCharge} />
+              </div>
+              <div>
+                <InputLabel label="Courier Amount (₹)" />
+                <NumericInput {...register('courierCharge', { 
+                    min: { value: 0, message: 'Cannot be negative' }
+                  })}
+                  className={getInputClass('courierCharge')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.courierCharge} />
+              </div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <InputLabel label="Total Amount (₹)" isAuto />
+                <input 
+                  type="text" 
+                  readOnly
+                  value={totalAmount}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-bold transition-colors"
+                />
+              </div>
+              <div>
+                <InputLabel label="Amount Paid (₹)" required />
+                <NumericInput {...register('amountPaid', { 
+                    required: 'Amount Paid is required',
+                    min: { value: 0, message: 'Cannot be negative' }
+                  })}
+                  className={getInputClass('amountPaid')}
+                  defaultToZero 
+                />
+                <ErrorMsg error={errors.amountPaid} />
+              </div>
+              <div>
+                <InputLabel label="Pending Amount (₹)" isAuto />
+                <input 
+                  type="text" 
+                  readOnly
+                  value={pendingAmount}
+                  className={`w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-sm font-bold transition-colors cursor-not-allowed ${pendingAmount > 0 ? 'text-red-500' : 'text-green-600'}`}
+                />
               </div>
             </div>
           </div>
