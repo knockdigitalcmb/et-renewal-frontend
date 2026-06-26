@@ -28,31 +28,19 @@ import { ProfileProvider } from './context/ProfileContext';
 import { DeviceModelProvider } from './context/DeviceModelContext';
 import { SimProvider } from './context/SimContext';
 import { ImeiProvider } from './context/ImeiContext';
-import VehicleTypeMaster from './pages/VehicleTypeMaster';
+import { ModalProvider } from './context/ModalContext';
+import { SettingsProvider } from './context/SettingsContext';
+import { ProfileProvider } from './context/ProfileContext';
+import { DeviceModelProvider } from './context/DeviceModelContext';
+import { SimProvider } from './context/SimContext';
+import { ImeiProvider } from './context/ImeiContext';
 
 function AppLayout() {
   return (
     <div className="min-h-screen bg-white font-sans flex">
       <Sidebar />
       <div className="flex-1 md:ml-[250px] w-full min-w-0">
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/customers" element={<CustomerList />} />
-          <Route path="/customers/add" element={<AddCustomer />} />
-          <Route path="/customers/view/:id" element={<ViewCustomer />} />
-          <Route path="/customers/edit/:id" element={<EditCustomer />} />
-          <Route path="/customers/vehicle/add/:customerId" element={<AddVehicle />} />
-          <Route path="/customers/vehicle/edit/:vehicleId" element={<EditVehicle />} />
-          <Route path="/customers/renewal/:id" element={<CustomerRenewal />} />
-          <Route path="/customers/import" element={<ImportCustomers />} />
-          <Route path="/renewals" element={<RenewalHistory />} />
-          <Route path="/resources/list" element={<ResourceList />} />
-          <Route path="/resources/add" element={<AddResource />} />
-          <Route path="/resources/view/:id" element={<ViewResource />} />
-          <Route path="/resources/edit/:id" element={<EditResource />} />
-          <Route path="/master/vehicle-types" element={<VehicleTypeMaster />} />
-        </Routes>
+        <AppRoutes />
       </div>
     </div>
   );

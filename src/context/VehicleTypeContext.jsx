@@ -346,6 +346,17 @@ export const VehicleTypeProvider = ({
       }
     };
 
+  // ======================
+  // CHECK DUPLICATE VEHICLE TYPE
+  // ======================
+
+  const checkDuplicateVehicleType = (name, excludeId = null) => {
+    const lowerName = name.toLowerCase().trim();
+    return vehicleTypes.some(
+      (t) => t.name.toLowerCase().trim() === lowerName && t.id !== excludeId
+    );
+  };
+
   return (
     <VehicleTypeContext.Provider
       value={{
@@ -355,6 +366,7 @@ export const VehicleTypeProvider = ({
         updateVehicleType,
         deleteVehicleType,
         getVehicleType,
+        checkDuplicateVehicleType,
         isLoading,
       }}
     >
