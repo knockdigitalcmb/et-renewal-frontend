@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCustomer } from '../context/CustomerContext';
-import { useResource } from '../context/ResourceContext';
-import { useVehicleType } from '../context/VehicleTypeContext';
-import Header from '../components/Header';
+import { useCustomer } from '../../context/CustomerContext';
+import { useResource } from '../../context/ResourceContext';
+import { useVehicleType } from '../../context/VehicleTypeContext';
+import { useDeviceModel } from '../../context/DeviceModelContext';
+import { useModal } from '../../context/ModalContext';
+import Header from '../../components/layout/Header';
 import { useForm, useWatch } from 'react-hook-form';
 import NumericInput from '../../components/common/NumericInput';
 import {
@@ -22,8 +24,6 @@ const AddVehicle = () => {
   const { deviceModels } = useDeviceModel();
 
   const activeResources = resources.filter(r => r.status === 'Active');
-
-  const { vehicleTypes } = useVehicleType();
   const activeVehicleTypes = vehicleTypes.filter(t => t.status === 'Active');
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors, dirtyFields } } = useForm({
@@ -67,12 +67,6 @@ const AddVehicle = () => {
       setValue('pendingAmount', 0);
     }
   }, [totalSaleAmount, deviceAmount, simAmount, softwareAmount, technicianAmount, courierAmount, amountPaid, setValue]);
-    const total = (parseFloat(devicePrice) || 0) + (parseFloat(simPrice) || 0);
-    setValue('totalPayment', total);
-
-    const pending = total - (parseFloat(amountPaid) || 0);
-    setValue('pendingAmount', pending > 0 ? pending : 0);
-  }, [devicePrice, simPrice, amountPaid, setValue]);
 
   useEffect(() => {
     if (installDate && validity) {
@@ -113,9 +107,6 @@ const AddVehicle = () => {
     }
 
     const pendingAmount = totalAmountNum - parseNum(trimmedData.amountPaid);
-    
-    const totalPayment = (parseFloat(trimmedData.devicePrice) || 0) + (parseFloat(trimmedData.simPrice) || 0);
-    const pendingAmount = totalPayment - (parseFloat(trimmedData.amountPaid) || 0);
 
     let expiryDate = '';
     if (trimmedData.installDate && trimmedData.validity) {
@@ -181,17 +172,14 @@ const AddVehicle = () => {
                     {...register('vehicleNo', {
                       required: 'Vehicle Number is required',
                       pattern: { 
-                        value: /^(TN\d{2}[A-Z]{2}\d{4}|TN\d{2}[A-Z]\d{4}|TN\d{2}\d{4})$/, 
+                        value: regexPatterns.vehicleNumber, 
                         message: 'Enter valid Vehicle Number' 
                       }
                     })} 
                     onInput={(e) => e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')}
-                    className={getInputClass('vehicleNo')} 
-                      pattern: { value: regexPatterns.vehicleNumber, message: 'Only alphabets and numbers allowed' }
-                    })}
                     onKeyDown={restrictAlphanumeric}
                     onPaste={pasteAlphanumeric}
-                    className={getInputClass('vehicleNo')}
+                    className={getInputClass('vehicleNo')} 
                   />
                   {errors.vehicleNo && <p className="text-red-500 text-xs mt-1">{errors.vehicleNo.message}</p>}
                 </div>
@@ -273,27 +261,6 @@ const AddVehicle = () => {
               <div className="bg-white rounded-md shadow-sm p-6 sm:p-8 border border-gray-100 mb-6">
                 <div className="flex items-center mb-6 pb-3 border-b border-gray-100">
                   <h3 className="text-base font-bold text-gray-800">Financial Details</h3>
-                <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Device Price (₹) *</label>
-                  <NumericInput step="0.01"
-                    {...register('devicePrice', {
-                      required: 'Device Price is required',
-                      min: { value: 0, message: 'Cannot be negative' }
-                    })}
-                    className={getInputClass('devicePrice')}
-                    defaultToZero />
-                  {errors.devicePrice && <p className="text-red-500 text-xs mt-1">{errors.devicePrice.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">SIM Price (₹) *</label>
-                  <NumericInput step="0.01"
-                    {...register('simPrice', {
-                      required: 'SIM Price is required',
-                      min: { value: 0, message: 'Cannot be negative' }
-                    })}
-                    className={getInputClass('simPrice')}
-                    defaultToZero />
-                  {errors.simPrice && <p className="text-red-500 text-xs mt-1">{errors.simPrice.message}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -401,21 +368,10 @@ const AddVehicle = () => {
                     defaultToZero />
                     {errors.courierAmount && <p className="text-red-500 text-xs mt-1">{errors.courierAmount.message}</p>}
                   </div>
-              {/* Row 3 */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div>
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Amount Paid (₹) *</label>
-                  <NumericInput step="0.01"
-                    {...register('amountPaid', {
-                      required: 'Amount Paid is required',
-                      min: { value: 0, message: 'Cannot be negative' }
-                    })}
-                    className={getInputClass('amountPaid')}
-                    defaultToZero />
-                  {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Row 3 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Total Amount (₹) - <span className="italic font-normal text-blue-500">Auto</span></label>
                     <input {...register('totalAmount')} readOnly className="w-full border border-gray-200 rounded px-3 py-2 text-[14px] bg-gray-100 cursor-not-allowed text-gray-600 font-bold" />
@@ -445,17 +401,19 @@ const AddVehicle = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Installation Person *</label>
-                  <input
-                    {...register('installPerson', {
-                      required: 'Installation Person is required',
-                      pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
-                    })}
-                    onKeyDown={restrictAlphabetsSpaces}
-                    onPaste={pasteAlphabetsSpaces}
-                    className={getInputClass('installPerson')}
-                  />
-                  {errors.installPerson && <p className="text-red-500 text-xs mt-1">{errors.installPerson.message}</p>}
+                  <div>
+                    <label className="block text-[13px] font-semibold text-gray-700 mb-1">Installation Person *</label>
+                    <input
+                      {...register('installPerson', {
+                        required: 'Installation Person is required',
+                        pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
+                      })}
+                      onKeyDown={restrictAlphabetsSpaces}
+                      onPaste={pasteAlphabetsSpaces}
+                      className={getInputClass('installPerson')}
+                    />
+                    {errors.installPerson && <p className="text-red-500 text-xs mt-1">{errors.installPerson.message}</p>}
+                  </div>
                 </div>
               </div>
 
@@ -520,10 +478,6 @@ const AddVehicle = () => {
                   type="submit" 
                   disabled={Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))}
                   className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${(Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#2ecc71] hover:bg-[#27ae60]'}`}
-                <button
-                  type="submit"
-                  disabled={Object.keys(errors).length > 0}
-                  className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${Object.keys(errors).length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#2ecc71] hover:bg-[#27ae60]'}`}
                 >
                   Save New Vehicle
                 </button>
