@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Header from '../components/Header';
+import Header from '../components/layout/Header';
 import { useVehicleType } from '../context/VehicleTypeContext';
 import { useForm } from 'react-hook-form';
 import { FiEdit2, FiTrash2, FiSearch } from 'react-icons/fi';
