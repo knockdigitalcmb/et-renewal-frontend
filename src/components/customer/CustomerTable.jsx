@@ -19,6 +19,7 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
         <thead>
           <tr className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm border-b border-gray-100 dark:border-gray-700">
             <th className="px-5 py-4 font-medium">Customer Name</th>
+            <th className="px-5 py-4 font-medium">Platform</th>
             <th className="px-5 py-4 font-medium">Mobile</th>
             <th className="px-5 py-4 font-medium">Location</th>
             <th className="px-5 py-4 font-medium">Lead Closure By</th>
@@ -36,6 +37,11 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
                 onClick={() => onView(customer.id)}
               >
                 {customer.name}
+              </td>
+              <td className="px-5 py-4">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                  {customer.platform || '-'}
+                </span>
               </td>
               <td className="px-5 py-4">{customer.mobile}</td>
               <td className="px-5 py-4">{customer.location}</td>
