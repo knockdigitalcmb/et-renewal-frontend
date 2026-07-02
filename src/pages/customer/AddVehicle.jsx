@@ -1,13 +1,11 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCustomer } from '../../../context/CustomerContext';
-import { useResource } from '../../../context/ResourceContext';
-import { useVehicleType } from '../../../context/VehicleTypeContext';
+import { useCustomer } from '../../context/CustomerContext';
+import { useResource } from '../../context/ResourceContext';
+import { useVehicleType } from '../../context/VehicleTypeContext';
 import { useDeviceModel } from '../../context/DeviceModelContext';
 import { useModal } from '../../context/ModalContext';
-import { useDeviceModel } from '../../context/DeviceModelContext';
-import { useModal } from '../../context/ModalContext';
-import Header from '../../../components/layout/layout/Header';
+import Header from '../../components/layout/Header';
 import { useForm, useWatch } from 'react-hook-form';
 import NumericInput from '../../components/common/NumericInput';
 import {
