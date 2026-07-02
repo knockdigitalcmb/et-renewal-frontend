@@ -24,7 +24,7 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
             <th className="px-5 py-4 font-medium">Location</th>
             <th className="px-5 py-4 font-medium">Lead Closure By</th>
             <th className="px-5 py-4 font-medium">Total Vehicles</th>
-            <th className="px-5 py-4 font-medium">Pending Amount (₹)</th>
+            {/* <th className="px-5 py-4 font-medium">Pending Amount (₹)</th> */}
             <th className="px-5 py-4 font-medium">Renewal Date</th>
             <th className="px-5 py-4 font-medium text-center">Actions</th>
           </tr>
@@ -47,7 +47,7 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
               <td className="px-5 py-4">{customer.location}</td>
               <td className="px-5 py-4">{customer.leadClosureBy}</td>
               <td className="px-5 py-4">{customer.vehicles?.length || 0}</td>
-              <td className="px-5 py-4">
+              {/* <td className="px-5 py-4">
                 {(() => {
                   const totalPending = customer.vehicles?.reduce((sum, v) => sum + (parseFloat(v.pendingAmount) || 0), 0) || 0;
                   return totalPending <= 0 ? (
@@ -58,7 +58,7 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
                     <span className="text-red-500 dark:text-red-400 font-medium">₹{totalPending}</span>
                   );
                 })()}
-              </td>
+              </td> */}
               <td className="px-5 py-4">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium tracking-wide ${
                   (customer.renewalDate === '-' || new Date(customer.renewalDate) < new Date()) ? 'bg-[#fee2e2] dark:bg-red-900/30 text-[#ef4444] dark:text-red-400' : 'bg-[#e6f8ec] dark:bg-green-900/30 text-[#2ecc71] dark:text-green-400'

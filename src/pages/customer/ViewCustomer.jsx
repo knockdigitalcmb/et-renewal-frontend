@@ -4,19 +4,47 @@ import { useCustomer } from '../../context/CustomerContext';
 import Header from '../../components/layout/Header';
 import { FiRefreshCw, FiEdit } from 'react-icons/fi';
 import { useSettings } from '../../context/SettingsContext';
+import { useModal } from '../../context/ModalContext';
 
 const ViewCustomer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getCustomer, renewals } = useCustomer();
+  const { getCustomerById, renewals } = useCustomer();
   const { formatDate } = useSettings();
+  const { showModal } = useModal();
   const [customer, setCustomer] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const data = getCustomer(id);
-    if (data) setCustomer(data);
-    else navigate('/customers');
-  }, [id, getCustomer, navigate]);
+    const fetchCustomer = async () => {
+      setLoading(true);
+      const data = await getCustomerById(id);
+      if (data) {
+        setCustomer(data);
+      } else {
+        showModal({
+          type: 'error',
+          title: 'Customer Not Found',
+          message: 'The requested customer details could not be found.',
+        });
+        navigate('/customers');
+      }
+      setLoading(false);
+    };
+    fetchCustomer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 flex flex-col font-sans transition-colors duration-200">
+        <Header />
+        <main className="flex-1 p-6 flex items-center justify-center">
+          <div className="text-gray-500">Loading customer details...</div>
+        </main>
+      </div>
+    );
+  }
 
   if (!customer) return null;
 
@@ -143,7 +171,7 @@ const ViewCustomer = () => {
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Install Date</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Validity</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Expiry Date</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending Amount</th>
+                    {/* <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending Amount</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -162,7 +190,7 @@ const ViewCustomer = () => {
                             {formatDate(vehicle.expiryDate)}
                           </span>
                         </td>
-                        <td className="p-3">
+                        {/* <td className="p-3">
                           {vehicle.pendingAmount <= 0 ? (
                             <span className="bg-[#d4edda] dark:bg-green-900/30 text-[#155724] dark:text-green-400 px-2 py-1 rounded text-[12px] font-medium tracking-wide">
                               Paid
@@ -172,7 +200,7 @@ const ViewCustomer = () => {
                               ₹{vehicle.pendingAmount}
                             </span>
                           )}
-                        </td>
+                        </td> */}
                       </tr>
                     ))
                   ) : (

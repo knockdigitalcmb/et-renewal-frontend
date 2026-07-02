@@ -23,23 +23,51 @@ const ImportCustomers = () => {
       return;
     }
     
-    // File is valid. Ready for backend integration.
     setLoading(true);
-    
-    // Simulating API integration delay for the UI to show loading state
-    setTimeout(() => {
-      setLoading(false);
-      
-      showModal({
-        type: 'success',
-        title: 'Sucessfully imported',
-        // message: 'The file is valid and ready to be processed by the backend API.',
-        buttons: [
-          { text: 'View Customers', style: 'primary', onClick: () => navigate('/customers') },
-          { text: 'Close', style: 'secondary' }
-        ]
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = localStorage.getItem('accessToken');
+
+      const response = await fetch('http://103.235.105.121:3000/api/v1/imports/customers-excel', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       });
-    }, 1000);
+
+      const data = await response.json();
+
+      if (response.ok && data.status === 'success') {
+        setLoading(false);
+        showModal({
+          type: 'success',
+          title: 'Import Successful',
+          message: data.message,
+          buttons: [
+            { text: 'View Customers', style: 'primary', onClick: () => navigate('/customers') },
+            { text: 'Close', style: 'secondary' },
+          ],
+        });
+      } else {
+        setLoading(false);
+        showModal({
+          type: 'error',
+          title: 'Import Failed',
+          message: data.message || 'An unexpected error occurred. Please try again.',
+        });
+      }
+    } catch (error) {
+      setLoading(false);
+      showModal({
+        type: 'error',
+        title: 'Import Failed',
+        message: 'Unable to upload the file. Please try again.',
+      });
+    }
   };
 
   return (

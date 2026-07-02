@@ -1,18 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const ImeiContext = createContext();
 
 export const useImei = () => useContext(ImeiContext);
 
 export const ImeiProvider = ({ children }) => {
-  const [imeis, setImeis] = useState(() => {
-    const saved = localStorage.getItem('crm_imeis');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('crm_imeis', JSON.stringify(imeis));
-  }, [imeis]);
+  const [imeis, setImeis] = useState([]);
 
   const addImei = (imeiData) => {
     return new Promise((resolve, reject) => {
@@ -22,7 +15,6 @@ export const ImeiProvider = ({ children }) => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      
       setImeis(prev => [newImei, ...prev]);
       resolve({ success: true, imei: newImei });
     });
