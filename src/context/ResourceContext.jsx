@@ -5,14 +5,7 @@ const ResourceContext = createContext();
 export const useResource = () => useContext(ResourceContext);
 
 export const ResourceProvider = ({ children }) => {
-  const [resources, setResources] = useState(() => {
-    const saved = localStorage.getItem('crm_resources');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('crm_resources', JSON.stringify(resources));
-  }, [resources]);
+  const [resources, setResources] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const addResource = async (data) => {

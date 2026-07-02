@@ -14,21 +14,7 @@ export const ProfileProvider = ({ children }) => {
     accountCreatedDate: '2024-01-10'
   };
 
-  const [profile, setProfile] = useState(() => {
-    try {
-      const saved = localStorage.getItem('userProfile');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Error loading profile", e);
-    }
-    return defaultProfile;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('userProfile', JSON.stringify(profile));
-  }, [profile]);
+  const [profile, setProfile] = useState(defaultProfile);
 
   const updateProfile = (newProfile) => {
     setProfile(prev => ({ ...prev, ...newProfile }));

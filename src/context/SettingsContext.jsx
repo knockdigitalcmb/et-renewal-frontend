@@ -20,27 +20,9 @@ export const SettingsProvider = ({ children }) => {
     }
   };
 
-  const [settings, setSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('appSettings');
-      if (saved) {
-        // Merge with defaults to ensure new settings (like whatsapp) are present
-        const parsed = JSON.parse(saved);
-        return {
-          theme: parsed.theme || defaultSettings.theme,
-          notifications: { ...defaultSettings.notifications, ...parsed.notifications },
-          preferences: { ...defaultSettings.preferences, ...parsed.preferences }
-        };
-      }
-    } catch (e) {
-      console.error("Error loading settings", e);
-    }
-    return defaultSettings;
-  });
+  const [settings, setSettings] = useState(defaultSettings);
 
   useEffect(() => {
-    localStorage.setItem('appSettings', JSON.stringify(settings));
-    
     // Apply dark mode class to html element
     if (settings.theme === 'dark') {
       document.documentElement.classList.add('dark');

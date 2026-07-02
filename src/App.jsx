@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import Login from './pages/auth/Login';
+import Logout from './pages/auth/Logout';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import AppRoutes from './routes/AppRoutes';
 
 import Dashboard from './pages/dashboard/Dashboard';
@@ -45,6 +47,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/logout" element={<Logout />} />
         <Route path="/*" element={
           <SettingsProvider>
             <ProfileProvider>
@@ -56,7 +59,9 @@ function App() {
                         <DeviceModelProvider>
                           <ImeiProvider>
                             <SimProvider>
-                              <AppLayout />
+                              <ProtectedRoute>
+                                <AppLayout />
+                              </ProtectedRoute>
                             </SimProvider>
                           </ImeiProvider>
                         </DeviceModelProvider>

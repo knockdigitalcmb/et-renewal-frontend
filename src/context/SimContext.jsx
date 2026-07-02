@@ -5,14 +5,7 @@ const SimContext = createContext();
 export const useSim = () => useContext(SimContext);
 
 export const SimProvider = ({ children }) => {
-  const [sims, setSims] = useState(() => {
-    const saved = localStorage.getItem('crm_sims');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('crm_sims', JSON.stringify(sims));
-  }, [sims]);
+  const [sims, setSims] = useState([]);
 
   const addSim = (simData) => {
     return new Promise((resolve, reject) => {

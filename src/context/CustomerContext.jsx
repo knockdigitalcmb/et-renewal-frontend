@@ -5,25 +5,10 @@ const CustomerContext = createContext();
 export const useCustomer = () => useContext(CustomerContext);
 
 export const CustomerProvider = ({ children }) => {
-  const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem('crm_customers');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [renewals, setRenewals] = useState(() => {
-    const saved = localStorage.getItem('crm_renewals');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [customers, setCustomers] = useState([]);
+  const [renewals, setRenewals] = useState([]);
   
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem('crm_customers', JSON.stringify(customers));
-  }, [customers]);
-
-  useEffect(() => {
-    localStorage.setItem('crm_renewals', JSON.stringify(renewals));
-  }, [renewals]);
 
   const addRenewal = (renewalData) => {
     setRenewals(prev => [{ id: Date.now(), ...renewalData }, ...prev]);
