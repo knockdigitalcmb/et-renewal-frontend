@@ -28,12 +28,6 @@ import { ProfileProvider } from './context/ProfileContext';
 import { DeviceModelProvider } from './context/DeviceModelContext';
 import { SimProvider } from './context/SimContext';
 import { ImeiProvider } from './context/ImeiContext';
-import { ModalProvider } from './context/ModalContext';
-import { SettingsProvider } from './context/SettingsContext';
-import { ProfileProvider } from './context/ProfileContext';
-import { DeviceModelProvider } from './context/DeviceModelContext';
-import { SimProvider } from './context/SimContext';
-import { ImeiProvider } from './context/ImeiContext';
 
 function AppLayout() {
   return (
