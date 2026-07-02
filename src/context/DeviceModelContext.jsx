@@ -7,23 +7,15 @@ export const useDeviceModel = () => {
 };
 
 export const DeviceModelProvider = ({ children }) => {
-  const [deviceModels, setDeviceModels] = useState(() => {
-    const saved = localStorage.getItem('deviceModels');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: crypto.randomUUID(), name: 'GT06N', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'AT4', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'ET100', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'ET200', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'Concox', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'Teltonika', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'Ruptela', status: 'Active' }
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('deviceModels', JSON.stringify(deviceModels));
-  }, [deviceModels]);
+  const [deviceModels, setDeviceModels] = useState([
+    { id: crypto.randomUUID(), name: 'GT06N', status: 'Active' },
+    { id: crypto.randomUUID(), name: 'AT4', status: 'Active' },
+    { id: crypto.randomUUID(), name: 'ET100', status: 'Active' },
+    { id: crypto.randomUUID(), name: 'ET200', status: 'Active' },
+    { id: crypto.randomUUID(), name: 'Concox', status: 'Active' },
+    { id: crypto.randomUUID(), name: 'Teltonika', status: 'Active' },
+    { id: crypto.randomUUID(), name: 'Ruptela', status: 'Active' }
+  ]);
 
   const addDeviceModel = (model) => {
     setDeviceModels([...deviceModels, { 

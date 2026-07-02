@@ -5,14 +5,7 @@ const ImeiContext = createContext();
 export const useImei = () => useContext(ImeiContext);
 
 export const ImeiProvider = ({ children }) => {
-  const [imeis, setImeis] = useState(() => {
-    const saved = localStorage.getItem('crm_imeis');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('crm_imeis', JSON.stringify(imeis));
-  }, [imeis]);
+  const [imeis, setImeis] = useState([]);
 
   const addImei = (imeiData) => {
     return new Promise((resolve, reject) => {

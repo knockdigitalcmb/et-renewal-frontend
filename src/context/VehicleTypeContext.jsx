@@ -5,28 +5,16 @@ const VehicleTypeContext = createContext();
 export const useVehicleType = () => useContext(VehicleTypeContext);
 
 export const VehicleTypeProvider = ({ children }) => {
-  const [vehicleTypes, setVehicleTypes] = useState(() => {
-    const saved = localStorage.getItem('crm_vehicle_types');
-    if (saved) {
-      return JSON.parse(saved);
-    } else {
-      // Default initialization
-      return [
-        { id: 1, name: 'Car', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 2, name: 'Bike', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 3, name: 'Bus', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 4, name: 'Lorry', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 5, name: 'Van', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 6, name: 'Auto', status: 'Active', createdDate: new Date().toISOString().split('T')[0] }
-      ];
-    }
-  });
+  const [vehicleTypes, setVehicleTypes] = useState([
+    { id: 1, name: 'Car', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+    { id: 2, name: 'Bike', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+    { id: 3, name: 'Bus', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+    { id: 4, name: 'Lorry', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+    { id: 5, name: 'Van', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
+    { id: 6, name: 'Auto', status: 'Active', createdDate: new Date().toISOString().split('T')[0] }
+  ]);
 
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem('crm_vehicle_types', JSON.stringify(vehicleTypes));
-  }, [vehicleTypes]);
 
   const addVehicleType = async (data) => {
     setIsLoading(true);
