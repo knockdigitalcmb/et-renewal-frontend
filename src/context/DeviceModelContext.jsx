@@ -6,35 +6,7 @@ export const useDeviceModel = () => {
   return useContext(DeviceModelContext);
 };
 
-export const DeviceModelProvider = ({ children }) => {
-  const [deviceModels, setDeviceModels] = useState([
-    { id: crypto.randomUUID(), name: 'GT06N', status: 'Active' },
-    { id: crypto.randomUUID(), name: 'AT4', status: 'Active' },
-    { id: crypto.randomUUID(), name: 'ET100', status: 'Active' },
-    { id: crypto.randomUUID(), name: 'ET200', status: 'Active' },
-    { id: crypto.randomUUID(), name: 'Concox', status: 'Active' },
-    { id: crypto.randomUUID(), name: 'Teltonika', status: 'Active' },
-    { id: crypto.randomUUID(), name: 'Ruptela', status: 'Active' }
-  ]);
 
-  const addDeviceModel = (model) => {
-    setDeviceModels([...deviceModels, { 
-      ...model, 
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }]);
-  };
-
-const DeviceModelContext =
-  createContext();
-
-export const useDeviceModel =
-  () => {
-    return useContext(
-      DeviceModelContext
-    );
-  };
 
 const API_URL =
   "http://103.235.105.121:3000/api/v1";
