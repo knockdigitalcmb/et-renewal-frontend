@@ -94,7 +94,7 @@ export const trimData = (data) => {
 export const regexPatterns = {
   customerName: /^[A-Za-z0-9. ]{3,}$/,
   location: /^[A-Za-z ]+$/,
-  vehicleNumber: /^[A-Za-z0-9]+$/, // Alphanumeric, no special chars
+  vehicleNumber: /^(TN\d{2}[A-Z]{2}\d{4}|TN\d{2}[A-Z]\d{4}|TN\d{2}\d{4})$/, // Strict TN format
   imei: /^\d{15}$/,
   mobile: /^\d{10}$/,
   sim: /^(\d{10}|\d{13})$/,

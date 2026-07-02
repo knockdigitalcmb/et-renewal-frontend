@@ -19,6 +19,7 @@ export const CustomerProvider = ({ children }) => {
     return new Promise((resolve) => {
       setTimeout(() => {
         const newCustomer = { 
+          ...data,
           id: Date.now().toString(), 
           name: data.UserName || data.customerName || 'New Customer',
           mobile: data.mobileNumber || '0000000000',
@@ -27,34 +28,37 @@ export const CustomerProvider = ({ children }) => {
           altMobile3: data.altMobile3 || '',
           email: data.email || '',
           location: data.location || '-',
+          platform: data.platform || '',
           leadClosureBy: data.leadClosureBy || '-',
-          totalVehicles: 1,
+          totalVehicles: data.vehicles ? data.vehicles.length : 1,
           pendingAmount: data.pendingAmount > 0 ? data.pendingAmount : 0,
           isPaid: data.pendingAmount <= 0,
           renewalDate: data.expiryDate || '-',
-          installDate: data.installationDate || '-',
-          vehicleNo: data.vehicleNumber || '-',
-          vehicles: [{
-            id: Date.now().toString() + '-v1',
-            vehicleNo: data.vehicleNumber || '-',
-            vehicleType: data.vehicleType || '',
-            platform: data.platform || '',
-            imei: data.imeiNumber || '',
-            simNumber: data.simNumber || '',
-            deviceModel: data.deviceModel || '',
-            devicePrice: data.devicePrice || 0,
-            simPrice: data.simPrice || 0,
-            totalPayment: data.totalPaymentReceived || 0,
+          installDate: data.installationDate || data.installDate || '-',
+          vehicleNo: data.vehicles && data.vehicles.length > 0 ? (data.vehicles[0].vehicleNumber || data.vehicles[0].vehicleNo || '-') : '-',
+          vehicles: data.vehicles && data.vehicles.length > 0 ? data.vehicles.map((v, index) => ({
+            id: Date.now().toString() + `-v${index + 1}`,
+            vehicleNo: v.vehicleNumber || v.vehicleNo || '-',
+            vehicleType: v.vehicleType || '',
+            platform: v.platform || '',
+            imei: v.imeiNumber || v.imei || '',
+            simNumber: v.simNumber || '',
+            deviceModel: v.deviceModel || '',
+            deviceCharge: data.deviceCharge || 0,
+            simCharge: data.simCharge || 0,
+            softwareCharge: data.softwareCharge || 0,
+            technicianCharge: data.technicianCharge || 0,
+            courierCharge: data.courierCharge || 0,
+            totalAmount: data.totalAmount || 0,
             amountPaid: data.amountPaid || 0,
             pendingAmount: data.pendingAmount > 0 ? data.pendingAmount : 0,
             paymentMode: data.paymentMode || '',
-            installPerson: data.installationPerson || '',
+            installPerson: data.installationPerson || data.installPerson || '',
             leadClosureBy: data.leadClosureBy || '-',
-            installDate: data.installationDate || '-',
+            installDate: data.installationDate || data.installDate || '-',
             validity: data.validity || '12',
             expiryDate: data.expiryDate || '-'
-          }],
-          ...data
+          })) : []
         };
         setCustomers(prev => [newCustomer, ...prev]);
         setIsLoading(false);
@@ -106,7 +110,14 @@ export const CustomerProvider = ({ children }) => {
           if (!hasVehicle) return c;
           
           const updatedVehicles = c.vehicles.map(v => 
-            v.id === vehicleId.toString() ? { ...v, ...data } : v
+            v.id === vehicleId.toString() ? { 
+              ...v, 
+              ...data,
+              vehicleNo: data.vehicleNo || v.vehicleNo || '-',
+              imei: data.imei || v.imei || '',
+              installDate: data.installDate || data.installationDate || v.installDate || '-',
+              validity: data.validity || v.validity || '12',
+            } : v
           );
           
           return { ...c, vehicles: updatedVehicles };
@@ -145,7 +156,11 @@ export const CustomerProvider = ({ children }) => {
           if (c.id === customerId.toString()) {
             const newVehicle = {
               id: Date.now().toString(),
-              ...vehicleData
+              ...vehicleData,
+              vehicleNo: vehicleData.vehicleNo || vehicleData.vehicleNumber || '-',
+              imei: vehicleData.imei || vehicleData.imeiNumber || '',
+              installDate: vehicleData.installDate || vehicleData.installationDate || '-',
+              validity: vehicleData.validity || '12',
             };
             return {
               ...c,
@@ -177,6 +192,18 @@ export const CustomerProvider = ({ children }) => {
     return false;
   };
 
+  const checkDuplicateUsername = (platform, username, excludeCustomerId = null) => {
+    if (!platform || !username) return false;
+    const lowerPlatform = platform.toLowerCase().trim();
+    const lowerUsername = username.toLowerCase().trim();
+
+    return customers.some(c => 
+      c.platform && c.platform.toLowerCase().trim() === lowerPlatform &&
+      c.name && c.name.toLowerCase().trim() === lowerUsername &&
+      c.id !== excludeCustomerId?.toString()
+    );
+  };
+
   return (
     <CustomerContext.Provider value={{ 
       customers, 
@@ -191,7 +218,8 @@ export const CustomerProvider = ({ children }) => {
       updateVehicle,
       deleteVehicle,
       addVehicle,
-      checkDuplicateVehicle
+      checkDuplicateVehicle,
+      checkDuplicateUsername
     }}>
       {children}
     </CustomerContext.Provider>

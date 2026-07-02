@@ -68,11 +68,12 @@ const EditVehicle = () => {
   const hasInactiveSelected = currentClosureBy && !activeResources.some(r => r.employeeName === currentClosureBy);
   const hasInactiveVehicleTypeSelected = currentVehicleType && !activeVehicleTypes.some(vt => vt.name === currentVehicleType);
 
-  const deviceCharge = useWatch({ control, name: 'deviceCharge', defaultValue: 0 });
-  const simCharge = useWatch({ control, name: 'simCharge', defaultValue: 0 });
-  const softwareCharge = useWatch({ control, name: 'softwareCharge', defaultValue: 0 });
-  const technicianCharge = useWatch({ control, name: 'technicianCharge', defaultValue: 0 });
-  const courierCharge = useWatch({ control, name: 'courierCharge', defaultValue: 0 });
+  const totalSaleAmount = useWatch({ control, name: 'totalSaleAmount', defaultValue: 0 });
+  const deviceAmount = useWatch({ control, name: 'deviceAmount', defaultValue: 0 });
+  const simAmount = useWatch({ control, name: 'simAmount', defaultValue: 0 });
+  const softwareAmount = useWatch({ control, name: 'softwareAmount', defaultValue: 0 });
+  const technicianAmount = useWatch({ control, name: 'technicianAmount', defaultValue: 0 });
+  const courierAmount = useWatch({ control, name: 'courierAmount', defaultValue: 0 });
   const amountPaid = useWatch({ control, name: 'amountPaid', defaultValue: 0 });
   const installDate = useWatch({ control, name: 'installDate' });
   const validity = useWatch({ control, name: 'validity', defaultValue: 0 });
@@ -88,13 +89,14 @@ const EditVehicle = () => {
         imei: data.imei || '',
         simNumber: data.simNumber || '',
         deviceModel: data.deviceModel || '',
-        deviceCharge: data.deviceCharge || 0,
-        simCharge: data.simCharge || 0,
-        softwareCharge: data.softwareCharge || 0,
-        technicianCharge: data.technicianCharge || 0,
-        courierCharge: data.courierCharge || 0,
+        totalSaleAmount: data.totalSaleAmount || data.totalAmount || 0,
+        deviceAmount: data.deviceAmount || data.deviceCharge || 0,
+        simAmount: data.simAmount || data.simCharge || 0,
+        softwareAmount: data.softwareAmount || data.softwareCharge || 0,
+        technicianAmount: data.technicianAmount || data.technicianCharge || 0,
+        courierAmount: data.courierAmount || data.courierCharge || 0,
         amountPaid: data.amountPaid || 0,
-        transactionRefNo: data.transactionRefNo || data.transactionid || '',
+        transactionId: data.transactionId || data.transactionRefNo || data.transactionid || '',
         paymentMode: data.paymentMode || '',
         installPerson: data.installPerson || '',
         leadClosureBy: data.leadClosureBy || '',
@@ -113,12 +115,16 @@ const EditVehicle = () => {
   };
 
   useEffect(() => {
-    const totalAmount = parseNum(deviceCharge) + parseNum(simCharge) + parseNum(softwareCharge) + parseNum(technicianCharge) + parseNum(courierCharge);
+    const totalAmount = parseNum(deviceAmount) + parseNum(simAmount) + parseNum(softwareAmount) + parseNum(technicianAmount) + parseNum(courierAmount);
     setValue('totalAmount', totalAmount);
     
-    const pendingAmount = totalAmount - parseNum(amountPaid);
-    setValue('pendingAmount', pendingAmount > 0 ? pendingAmount : 0);
-  }, [deviceCharge, simCharge, softwareCharge, technicianCharge, courierCharge, amountPaid, setValue]);
+    if (parseNum(totalSaleAmount) === totalAmount) {
+      const pendingAmount = totalAmount - parseNum(amountPaid);
+      setValue('pendingAmount', pendingAmount > 0 ? pendingAmount : 0);
+    } else {
+      setValue('pendingAmount', 0);
+    }
+  }, [totalSaleAmount, deviceAmount, simAmount, softwareAmount, technicianAmount, courierAmount, amountPaid, setValue]);
 
   useEffect(() => {
     if (installDate && validity) {
@@ -143,8 +149,15 @@ const EditVehicle = () => {
       return;
     }
 
-    const totalAmount = parseNum(trimmedData.deviceCharge) + parseNum(trimmedData.simCharge) + parseNum(trimmedData.softwareCharge) + parseNum(trimmedData.technicianCharge) + parseNum(trimmedData.courierCharge);
-    const pendingAmount = totalAmount - parseNum(trimmedData.amountPaid);
+    const totalSaleAmountNum = parseNum(trimmedData.totalSaleAmount);
+    const totalAmountNum = parseNum(trimmedData.totalAmount);
+
+    if (totalSaleAmountNum !== totalAmountNum) {
+      showModal({ type: 'error', title: 'Validation Error', message: 'Total Sale Amount must match Total Amount' });
+      return;
+    }
+
+    const pendingAmount = totalAmountNum - parseNum(trimmedData.amountPaid);
     
     let expiryDate = '';
     if (trimmedData.installDate && trimmedData.validity) {
@@ -161,7 +174,7 @@ const EditVehicle = () => {
 
     const payload = {
       ...trimmedData,
-      totalAmount,
+      totalAmount: totalAmountNum,
       pendingAmount: pendingAmount > 0 ? pendingAmount : 0,
       expiryDate
     };
@@ -232,10 +245,12 @@ const EditVehicle = () => {
                     type="text" 
                     {...register('vehicleNo', { 
                       required: 'Vehicle Number is required',
-                      pattern: { value: regexPatterns.vehicleNumber, message: 'Only alphabets and numbers allowed' }
+                      pattern: { 
+                        value: /^(TN\d{2}[A-Z]{2}\d{4}|TN\d{2}[A-Z]\d{4}|TN\d{2}\d{4})$/, 
+                        message: 'Enter valid Vehicle Number' 
+                      }
                     })}
-                    onKeyDown={restrictAlphanumeric}
-                    onPaste={pasteAlphanumeric}
+                    onInput={(e) => e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')}
                     className={getInputClass('vehicleNo')}
                   />
                   <ErrorMsg error={errors.vehicleNo} />
@@ -346,61 +361,117 @@ const EditVehicle = () => {
               {/* Row 1 */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <div>
-                  <InputLabel label="Device Charge (₹)" required />
-                  <NumericInput {...register('deviceCharge', { 
-                      required: 'Device Charge is required',
-                      min: { value: 0, message: 'Cannot be negative' }
-                    })}
-                    className={getInputClass('deviceCharge')}
-                    defaultToZero 
-                  />
-                  <ErrorMsg error={errors.deviceCharge} />
+                  <InputLabel label="Payment Mode" required />
+                  <select 
+                    {...register('paymentMode', { required: 'Payment Mode is required' })}
+                    className={getInputClass('paymentMode')}
+                  >
+                    <option value="">Select Mode</option>
+                    <option value="ET Gpay">ET Gpay</option>
+                    <option value="ET Phonepe">ET Phonepe</option>
+                    <option value="ET Paytm">ET Paytm</option>
+                    <option value="ET Account">ET Account</option>
+                    <option value="ET Cheque">ET Cheque</option>
+                    <option value="8002 Gpay">8002 Gpay</option>
+                    <option value="8002 Paytm">8002 Paytm</option>
+                    <option value="8002 PhonePe">8002 PhonePe</option>
+                    <option value="8002 Account">8002 Account</option>
+                    <option value="WATI Gpay">WATI Gpay</option>
+                    <option value="WATI Paytm">WATI Paytm</option>
+                    <option value="WATI PhonePe">WATI PhonePe</option>
+                    <option value="WATI Account">WATI Account</option>
+                    <option value="Cash">Cash</option>
+                    <option value="CC Payment Gateway">CC Payment Gateway</option>
+                  </select>
+                  <ErrorMsg error={errors.paymentMode} />
                 </div>
                 <div>
-                  <InputLabel label="SIM Charge (₹)" required />
-                  <NumericInput {...register('simCharge', { 
-                      required: 'SIM Charge is required',
-                      min: { value: 0, message: 'Cannot be negative' }
+                  <InputLabel label="Transaction ID (Last 6 Digits)" required />
+                  <input 
+                    type="text" 
+                    maxLength={6}
+                    {...register('transactionId', { 
+                      required: 'Transaction ID is required',
+                      pattern: { value: /^\d{6}$/, message: 'Please enter exactly 6 digits.' }
                     })}
-                    className={getInputClass('simCharge')}
-                    defaultToZero 
+                    onKeyDown={restrictNumbers}
+                    onPaste={pasteNumbers}
+                    className={getInputClass('transactionId')}
+                    placeholder="e.g. 987654"
                   />
-                  <ErrorMsg error={errors.simCharge} />
+                  <ErrorMsg error={errors.transactionId} />
                 </div>
                 <div>
-                  <InputLabel label="Software Charge (₹)" />
-                  <NumericInput {...register('softwareCharge', { 
+                  <InputLabel label="Total Sale Amount (₹)" required />
+                  <NumericInput {...register('totalSaleAmount', { 
+                      required: 'Total Sale Amount is required',
                       min: { value: 0, message: 'Cannot be negative' }
                     })}
-                    className={getInputClass('softwareCharge')}
+                    className={getInputClass('totalSaleAmount')}
                     defaultToZero 
                   />
-                  <ErrorMsg error={errors.softwareCharge} />
+                  <ErrorMsg error={errors.totalSaleAmount} />
                 </div>
                 <div>
-                  <InputLabel label="Technician Charge (₹)" />
-                  <NumericInput {...register('technicianCharge', { 
+                  <InputLabel label="Device Amount (₹)" required />
+                  <NumericInput {...register('deviceAmount', { 
+                      required: 'Device Amount is required',
                       min: { value: 0, message: 'Cannot be negative' }
                     })}
-                    className={getInputClass('technicianCharge')}
+                    className={getInputClass('deviceAmount')}
                     defaultToZero 
                   />
-                  <ErrorMsg error={errors.technicianCharge} />
+                  <ErrorMsg error={errors.deviceAmount} />
                 </div>
               </div>
 
               {/* Row 2 */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <div>
-                  <InputLabel label="Courier Charge (₹)" />
-                  <NumericInput {...register('courierCharge', { 
+                  <InputLabel label="SIM Amount (₹)" required />
+                  <NumericInput {...register('simAmount', { 
+                      required: 'SIM Amount is required',
                       min: { value: 0, message: 'Cannot be negative' }
                     })}
-                    className={getInputClass('courierCharge')}
+                    className={getInputClass('simAmount')}
                     defaultToZero 
                   />
-                  <ErrorMsg error={errors.courierCharge} />
+                  <ErrorMsg error={errors.simAmount} />
                 </div>
+                <div>
+                  <InputLabel label="Software Amount (₹)" />
+                  <NumericInput {...register('softwareAmount', { 
+                      min: { value: 0, message: 'Cannot be negative' }
+                    })}
+                    className={getInputClass('softwareAmount')}
+                    defaultToZero 
+                  />
+                  <ErrorMsg error={errors.softwareAmount} />
+                </div>
+                <div>
+                  <InputLabel label="Technician Amount (₹)" />
+                  <NumericInput {...register('technicianAmount', { 
+                      min: { value: 0, message: 'Cannot be negative' }
+                    })}
+                    className={getInputClass('technicianAmount')}
+                    defaultToZero 
+                  />
+                  <ErrorMsg error={errors.technicianAmount} />
+                </div>
+                <div>
+                  <InputLabel label="Courier Amount (₹)" />
+                  <NumericInput {...register('courierAmount', { 
+                      min: { value: 0, message: 'Cannot be negative' }
+                    })}
+                    className={getInputClass('courierAmount')}
+                    defaultToZero 
+                  />
+                  <ErrorMsg error={errors.courierAmount} />
+                </div>
+              </div>
+
+              {/* Row 3 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <InputLabel label="Total Amount (₹)" isAuto />
                   <input 
@@ -429,51 +500,6 @@ const EditVehicle = () => {
                     value={watch('pendingAmount') || 0}
                     className={`w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-sm font-bold transition-colors cursor-not-allowed ${watch('pendingAmount') > 0 ? 'text-red-500' : 'text-green-600'}`}
                   />
-                </div>
-              </div>
-
-              {/* Row 3 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div>
-                  <InputLabel label="Payment Mode" required />
-                  <select 
-                    {...register('paymentMode', { required: 'Payment Mode is required' })}
-                    className={getInputClass('paymentMode')}
-                  >
-                    <option value="">Select Mode</option>
-                    <option value="ET Gpay">ET Gpay</option>
-                    <option value="ET Phonepe">ET Phonepe</option>
-                    <option value="ET Paytm">ET Paytm</option>
-                    <option value="ET Account">ET Account</option>
-                    <option value="ET Cheque">ET Cheque</option>
-                    <option value="8002 Gpay">8002 Gpay</option>
-                    <option value="8002 Paytm">8002 Paytm</option>
-                    <option value="8002 PhonePe">8002 PhonePe</option>
-                    <option value="8002 Account">8002 Account</option>
-                    <option value="WATI Gpay">WATI Gpay</option>
-                    <option value="WATI Paytm">WATI Paytm</option>
-                    <option value="WATI PhonePe">WATI PhonePe</option>
-                    <option value="WATI Account">WATI Account</option>
-                    <option value="Cash">Cash</option>
-                    <option value="CC Payment Gateway">CC Payment Gateway</option>
-                  </select>
-                  <ErrorMsg error={errors.paymentMode} />
-                </div>
-                <div>
-                  <InputLabel label="Transaction Ref No (Last 6 Digits)" required />
-                  <input 
-                    type="text" 
-                    maxLength={6}
-                    {...register('transactionRefNo', { 
-                      required: 'Transaction Ref No is required',
-                      pattern: { value: /^\d{6}$/, message: 'Please enter exactly 6 digits.' }
-                    })}
-                    onKeyDown={restrictNumbers}
-                    onPaste={pasteNumbers}
-                    className={getInputClass('transactionRefNo')}
-                    placeholder="e.g. 987654"
-                  />
-                  <ErrorMsg error={errors.transactionRefNo} />
                 </div>
               </div>
             </div>
@@ -575,9 +601,9 @@ const EditVehicle = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 border-t border-gray-100 dark:border-gray-700 pt-6">
               <button 
                 type="submit"
-                disabled={Object.keys(errors).length > 0}
-                className={`w-full sm:w-auto px-10 py-3 rounded text-white font-medium shadow-sm transition-colors text-center ${Object.keys(errors).length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'hover:bg-[#3411b0]'}`}
-                style={{ backgroundColor: Object.keys(errors).length > 0 ? '#9ca3af' : '#4b1bc4' }}
+                disabled={Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))}
+                className={`w-full sm:w-auto px-10 py-3 rounded text-white font-medium shadow-sm transition-colors text-center ${(Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))) ? 'bg-gray-400 cursor-not-allowed' : 'hover:bg-[#3411b0]'}`}
+                style={{ backgroundColor: (Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))) ? '#9ca3af' : '#4b1bc4' }}
               >
                 Update Vehicle
               </button>
