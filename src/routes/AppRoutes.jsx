@@ -16,6 +16,7 @@ import AddVehicle from '../pages/customer/AddVehicle';
 import ImportCustomers from '../pages/customer/ImportCustomers';
 import Profile from '../pages/settings/Profile';
 import Settings from '../pages/settings/Settings';
+import Notifications from '../pages/notifications/Notifications';
 import VehicleTypes from '../pages/devices/VehicleTypes';
 import VehicleList from '../pages/devices/VehicleList';
 import DeviceModels from '../pages/devices/DeviceModels';
@@ -39,6 +40,7 @@ const AppRoutes = () => {
       <Route path="/customers/renewal/:id" element={<CustomerRenewal />} />
       <Route path="/customers/import" element={<ImportCustomers />} />
       <Route path="/renewals" element={<RenewalHistory />} />
+      <Route path="/notifications" element={<Notifications />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/resources/list" element={<ResourceList />} />

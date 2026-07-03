@@ -5,6 +5,7 @@ import { useModal } from '../../context/ModalContext';
 import { useProfile } from '../../context/ProfileContext';
 import { FiUser, FiSettings, FiLogOut } from 'react-icons/fi';
 import GlobalSearch from '../common/GlobalSearch';
+import NotificationBell from './NotificationBell';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -83,7 +84,8 @@ const Header = () => {
         </div>
         
         {/* Right: Profile */}
-        <div className="flex items-center justify-end w-auto md:w-1/3 order-2 md:order-3">
+        <div className="flex items-center justify-end w-auto md:w-1/3 order-2 md:order-3 gap-2 md:gap-4">
+          <NotificationBell />
           <div className="relative" ref={dropdownRef}>
           <button 
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}

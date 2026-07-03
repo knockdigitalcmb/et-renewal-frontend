@@ -14,6 +14,7 @@ import { ProfileProvider } from './context/ProfileContext';
 import { DeviceModelProvider } from './context/DeviceModelContext';
 import { SimProvider } from './context/SimContext';
 import { ImeiProvider } from './context/ImeiContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 function AppLayout() {
   return (
@@ -42,7 +43,9 @@ function App() {
                         <DeviceModelProvider>
                           <ImeiProvider>
                             <SimProvider>
-                              <AppLayout />
+                              <NotificationProvider>
+                                <AppLayout />
+                              </NotificationProvider>
                             </SimProvider>
                           </ImeiProvider>
                         </DeviceModelProvider>
