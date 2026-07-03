@@ -1,9 +1,25 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import Login from './pages/auth/Login';
+import Logout from './pages/auth/Logout';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import AppRoutes from './routes/AppRoutes';
 
+import Dashboard from './pages/dashboard/Dashboard';
+import CustomerList from './pages/customer/CustomerList';
+import AddCustomer from './pages/customer/AddCustomer';
+import ViewCustomer from './pages/customer/ViewCustomer';
+import EditCustomer from './pages/customer/EditCustomer';
+import AddVehicle from './pages/customer/AddVehicle';
+import EditVehicle from './pages/customer/EditVehicle';
+import CustomerRenewal from './pages/renewal/CustomerRenewal';
+import ImportCustomers from './pages/customer/ImportCustomers';
+import RenewalHistory from './pages/renewal/RenewalHistory';
+import ResourceList from './pages/resource/ResourceList';
+import AddResource from './pages/resource/AddResource';
+import ViewResource from './pages/resource/ViewResource';
+import EditResource from './pages/resource/EditResource';
 import { ResourceProvider } from './context/ResourceContext';
 import { CustomerProvider } from './context/CustomerContext';
 import { LayoutProvider } from './context/LayoutContext';
@@ -31,6 +47,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/logout" element={<Logout />} />
         <Route path="/*" element={
           <SettingsProvider>
             <ProfileProvider>
@@ -42,7 +59,9 @@ function App() {
                         <DeviceModelProvider>
                           <ImeiProvider>
                             <SimProvider>
-                              <AppLayout />
+                              <ProtectedRoute>
+                                <AppLayout />
+                              </ProtectedRoute>
                             </SimProvider>
                           </ImeiProvider>
                         </DeviceModelProvider>

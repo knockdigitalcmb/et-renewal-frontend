@@ -24,6 +24,7 @@ const AddVehicle = () => {
   const { deviceModels } = useDeviceModel();
 
   const activeResources = resources.filter(r => r.status === 'Active');
+
   const activeVehicleTypes = vehicleTypes.filter(t => t.status === 'Active');
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors, dirtyFields } } = useForm({
@@ -59,7 +60,7 @@ const AddVehicle = () => {
   useEffect(() => {
     const total = parseNum(deviceAmount) + parseNum(simAmount) + parseNum(softwareAmount) + parseNum(technicianAmount) + parseNum(courierAmount);
     setValue('totalAmount', total);
-    
+
     if (parseNum(totalSaleAmount) === total) {
       const pending = total - parseNum(amountPaid);
       setValue('pendingAmount', pending > 0 ? pending : 0);
@@ -171,15 +172,15 @@ const AddVehicle = () => {
                   <input
                     {...register('vehicleNo', {
                       required: 'Vehicle Number is required',
-                      pattern: { 
-                        value: regexPatterns.vehicleNumber, 
-                        message: 'Enter valid Vehicle Number' 
+                      pattern: {
+                        value: regexPatterns.vehicleNumber,
+                        message: 'Enter valid Vehicle Number'
                       }
-                    })} 
+                    })}
                     onInput={(e) => e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')}
                     onKeyDown={restrictAlphanumeric}
                     onPaste={pasteAlphanumeric}
-                    className={getInputClass('vehicleNo')} 
+                    className={getInputClass('vehicleNo')}
                   />
                   {errors.vehicleNo && <p className="text-red-500 text-xs mt-1">{errors.vehicleNo.message}</p>}
                 </div>
@@ -288,10 +289,10 @@ const AddVehicle = () => {
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Transaction ID (Last 6 Digits) *</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       maxLength={6}
-                      {...register('transactionId', { 
+                      {...register('transactionId', {
                         required: 'Transaction ID is required',
                         pattern: { value: /^\d{6}$/, message: 'Please enter exactly 6 digits.' }
                       })}
@@ -304,24 +305,24 @@ const AddVehicle = () => {
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Total Sale Amount (₹) *</label>
-                    <NumericInput {...register('totalSaleAmount', { 
-                        required: 'Total Sale Amount is required',
-                        min: { value: 0, message: 'Cannot be negative' }
-                      })}
+                    <NumericInput {...register('totalSaleAmount', {
+                      required: 'Total Sale Amount is required',
+                      min: { value: 0, message: 'Cannot be negative' }
+                    })}
                       className={getInputClass('totalSaleAmount')}
-                      defaultToZero 
+                      defaultToZero
                     />
                     {errors.totalSaleAmount && <p className="text-red-500 text-xs mt-1">{errors.totalSaleAmount.message}</p>}
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Device Amount (₹) *</label>
-                    <NumericInput step="0.01" 
-                      {...register('deviceAmount', { 
+                    <NumericInput step="0.01"
+                      {...register('deviceAmount', {
                         required: 'Device Amount is required',
                         min: { value: 0, message: 'Cannot be negative' }
-                      })} 
-                      className={getInputClass('deviceAmount')} 
-                    defaultToZero />
+                      })}
+                      className={getInputClass('deviceAmount')}
+                      defaultToZero />
                     {errors.deviceAmount && <p className="text-red-500 text-xs mt-1">{errors.deviceAmount.message}</p>}
                   </div>
                 </div>
@@ -329,43 +330,43 @@ const AddVehicle = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">SIM Amount (₹) *</label>
-                    <NumericInput step="0.01" 
-                      {...register('simAmount', { 
+                    <NumericInput step="0.01"
+                      {...register('simAmount', {
                         required: 'SIM Amount is required',
                         min: { value: 0, message: 'Cannot be negative' }
-                      })} 
-                      className={getInputClass('simAmount')} 
-                    defaultToZero />
+                      })}
+                      className={getInputClass('simAmount')}
+                      defaultToZero />
                     {errors.simAmount && <p className="text-red-500 text-xs mt-1">{errors.simAmount.message}</p>}
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Software Amount (₹)</label>
-                    <NumericInput step="0.01" 
-                      {...register('softwareAmount', { 
+                    <NumericInput step="0.01"
+                      {...register('softwareAmount', {
                         min: { value: 0, message: 'Cannot be negative' }
-                      })} 
-                      className={getInputClass('softwareAmount')} 
-                    defaultToZero />
+                      })}
+                      className={getInputClass('softwareAmount')}
+                      defaultToZero />
                     {errors.softwareAmount && <p className="text-red-500 text-xs mt-1">{errors.softwareAmount.message}</p>}
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Technician Amount (₹)</label>
-                    <NumericInput step="0.01" 
-                      {...register('technicianAmount', { 
+                    <NumericInput step="0.01"
+                      {...register('technicianAmount', {
                         min: { value: 0, message: 'Cannot be negative' }
-                      })} 
-                      className={getInputClass('technicianAmount')} 
-                    defaultToZero />
+                      })}
+                      className={getInputClass('technicianAmount')}
+                      defaultToZero />
                     {errors.technicianAmount && <p className="text-red-500 text-xs mt-1">{errors.technicianAmount.message}</p>}
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Courier Amount (₹)</label>
-                    <NumericInput step="0.01" 
-                      {...register('courierAmount', { 
+                    <NumericInput step="0.01"
+                      {...register('courierAmount', {
                         min: { value: 0, message: 'Cannot be negative' }
-                      })} 
-                      className={getInputClass('courierAmount')} 
-                    defaultToZero />
+                      })}
+                      className={getInputClass('courierAmount')}
+                      defaultToZero />
                     {errors.courierAmount && <p className="text-red-500 text-xs mt-1">{errors.courierAmount.message}</p>}
                   </div>
                 </div>
@@ -378,13 +379,13 @@ const AddVehicle = () => {
                   </div>
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Amount Paid (₹) *</label>
-                    <NumericInput step="0.01" 
-                      {...register('amountPaid', { 
+                    <NumericInput step="0.01"
+                      {...register('amountPaid', {
                         required: 'Amount Paid is required',
                         min: { value: 0, message: 'Cannot be negative' }
-                      })} 
-                      className={getInputClass('amountPaid')} 
-                    defaultToZero />
+                      })}
+                      className={getInputClass('amountPaid')}
+                      defaultToZero />
                     {errors.amountPaid && <p className="text-red-500 text-xs mt-1">{errors.amountPaid.message}</p>}
                   </div>
                   <div>
@@ -399,7 +400,7 @@ const AddVehicle = () => {
                 <div className="flex items-center mb-6 pb-3 border-b border-gray-100">
                   <h3 className="text-base font-bold text-gray-800">Installation Details</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <div>
                     <label className="block text-[13px] font-semibold text-gray-700 mb-1">Installation Person *</label>
@@ -474,8 +475,8 @@ const AddVehicle = () => {
               </div>
 
               <div className="pt-4">
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))}
                   className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${(Object.keys(errors).length > 0 || parseFloat(watch('totalSaleAmount')) !== parseFloat(watch('totalAmount'))) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#2ecc71] hover:bg-[#27ae60]'}`}
                 >

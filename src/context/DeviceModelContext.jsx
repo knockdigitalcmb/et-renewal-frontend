@@ -1,19 +1,12 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-} from "react";
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const DeviceModelContext =
-  createContext();
+const DeviceModelContext = createContext();
 
-export const useDeviceModel =
-  () => {
-    return useContext(
-      DeviceModelContext
-    );
-  };
+export const useDeviceModel = () => {
+  return useContext(DeviceModelContext);
+};
+
+
 
 const API_URL =
   "http://103.235.105.121:3000/api/v1";
