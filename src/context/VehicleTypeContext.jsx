@@ -72,13 +72,6 @@ export const VehicleTypeProvider = ({
           setVehicleTypes(
             formattedData
           );
-
-          localStorage.setItem(
-            "crm_vehicle_types",
-            JSON.stringify(
-              formattedData
-            )
-          );
         }
       } catch (error) {
         console.error(

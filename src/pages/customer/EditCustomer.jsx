@@ -305,7 +305,7 @@ const EditCustomer = () => {
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">IMEI</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">SIM Number</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Total Payment</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending</th>
+                    {/* <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending</th> */}
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Actions</th>
                   </tr>
                 </thead>
@@ -319,7 +319,7 @@ const EditCustomer = () => {
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.imei}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.simNumber}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">₹{vehicle.totalAmount || 0}</td>
-                        <td className="p-3">
+                        {/* <td className="p-3">
                           {vehicle.pendingAmount <= 0 ? (
                             <span className="bg-[#d4edda] dark:bg-green-900/30 text-[#155724] dark:text-green-400 px-2 py-1 rounded text-[12px] font-medium tracking-wide">
                               Paid
@@ -329,7 +329,7 @@ const EditCustomer = () => {
                               ₹{vehicle.pendingAmount}
                             </span>
                           )}
-                        </td>
+                        </td> */}
                         <td className="p-3 flex space-x-2">
                           <div className="relative">
                             <button

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const CustomerContext = createContext();
 
@@ -7,9 +7,142 @@ export const useCustomer = () => useContext(CustomerContext);
 export const CustomerProvider = ({ children }) => {
   const [customers, setCustomers] = useState([]);
   const [renewals, setRenewals] = useState([]);
-  
   const [isLoading, setIsLoading] = useState(false);
 
+  const fetchCustomers = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch('http://103.235.105.121:3000/api/v1/customers', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const customerList = Array.isArray(result.data) ? result.data : [];
+        const mappedCustomers = customerList.map(c => ({
+          id: c.id,
+          name: c.name || '-',
+          mobile: c.phone_number || '-',
+          altMobile1: c.phone_number_1 || '',
+          altMobile2: c.phone_number_2 || '',
+          altMobile3: c.phone_number_3 || '',
+          email: c.email || '',
+          location: c.location || '-',
+          platform: c.devices && c.devices.length > 0 ? (c.devices[0].platform || '-') : '-',
+          leadClosureBy: c.devices && c.devices.length > 0 ? (c.devices[0].lead_closer || '-') : '-',
+          totalVehicles: c.devices ? c.devices.length : 0,
+          pendingAmount: c.devices && c.devices.length > 0 ? (c.devices[0].renewal_payment_status === 0 ? 1 : 0) : 0,
+          isPaid: c.devices && c.devices.length > 0 ? c.devices[0].renewal_payment_status !== 0 : true,
+          renewalDate: c.devices && c.devices.length > 0 && c.devices[0].next_renew_date ? c.devices[0].next_renew_date : '-',
+          installDate: c.devices && c.devices.length > 0 && c.devices[0].installation_date ? c.devices[0].installation_date : '-',
+          vehicleNo: c.devices && c.devices.length > 0 ? (c.devices[0].vehicle_number || '-') : '-',
+          vehicles: c.devices ? c.devices.map(d => ({
+            id: d.id,
+            vehicleNo: d.vehicle_number || '-',
+            vehicleType: d.vehicle_type || '',
+            platform: d.platform || '',
+            imei: d.imei || '',
+            simNumber: d.sim_number || '',
+            deviceModel: d.device_type || '',
+            installDate: d.installation_date || '-',
+            validity: d.validity || '12',
+            expiryDate: d.next_renew_date || '-',
+            installPerson: d.install_person || d.installationPerson || '',
+            leadClosureBy: d.lead_closer || d.leadClosureBy || '',
+            totalAmount: d.total_amount || d.totalAmount || 0,
+            totalSaleAmount: d.total_sale_amount || d.totalSaleAmount || d.total_amount || d.totalAmount || 0,
+            deviceAmount: d.device_amount || d.deviceAmount || d.deviceCharge || 0,
+            simAmount: d.sim_amount || d.simAmount || d.simCharge || 0,
+            softwareAmount: d.software_amount || d.softwareAmount || d.softwareCharge || 0,
+            technicianAmount: d.technician_amount || d.technicianAmount || d.technicianCharge || 0,
+            courierAmount: d.courier_amount || d.courierAmount || d.courierCharge || 0,
+            amountPaid: d.amount_paid || d.amountPaid || 0,
+            pendingAmount: d.pending_amount || d.pendingAmount || 0,
+            paymentMode: d.payment_mode || d.paymentMode || '',
+            transactionId: d.transaction_id || d.transactionId || d.transactionRefNo || ''
+          })) : []
+        }));
+        setCustomers(mappedCustomers);
+      }
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  const getCustomerById = useCallback(async (id) => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`http://103.235.105.121:3000/api/v1/customers/${id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result) {
+        const c = result.data || result;
+        return {
+          id: c.id,
+          name: c.name || '-',
+          mobile: c.phone_number || '-',
+          altMobile1: c.phone_number_1 || '',
+          altMobile2: c.phone_number_2 || '',
+          altMobile3: c.phone_number_3 || '',
+          email: c.email || '',
+          location: c.location || '-',
+          platform: c.devices && c.devices.length > 0 ? (c.devices[0].platform || '-') : '-',
+          leadClosureBy: c.devices && c.devices.length > 0 ? (c.devices[0].lead_closer || '-') : '-',
+          totalVehicles: c.devices ? c.devices.length : 0,
+          pendingAmount: c.devices && c.devices.length > 0 ? (c.devices[0].renewal_payment_status === 0 ? 1 : 0) : 0,
+          isPaid: c.devices && c.devices.length > 0 ? c.devices[0].renewal_payment_status !== 0 : true,
+          renewalDate: c.devices && c.devices.length > 0 && c.devices[0].next_renew_date ? c.devices[0].next_renew_date : '-',
+          installDate: c.devices && c.devices.length > 0 && c.devices[0].installation_date ? c.devices[0].installation_date : '-',
+          vehicleNo: c.devices && c.devices.length > 0 ? (c.devices[0].vehicle_number || '-') : '-',
+          vehicles: c.devices ? c.devices.map(d => ({
+            id: d.id,
+            vehicleNo: d.vehicle_number || '-',
+            vehicleType: d.vehicle_type || '',
+            platform: d.platform || '',
+            imei: d.imei || '',
+            simNumber: d.sim_number || '',
+            deviceModel: d.device_type || '',
+            installDate: d.installation_date || '-',
+            validity: d.validity || '12',
+            expiryDate: d.next_renew_date || '-',
+            installPerson: d.install_person || d.installationPerson || '',
+            leadClosureBy: d.lead_closer || d.leadClosureBy || '',
+            totalAmount: d.total_amount || d.totalAmount || 0,
+            totalSaleAmount: d.total_sale_amount || d.totalSaleAmount || d.total_amount || d.totalAmount || 0,
+            deviceAmount: d.device_amount || d.deviceAmount || d.deviceCharge || 0,
+            simAmount: d.sim_amount || d.simAmount || d.simCharge || 0,
+            softwareAmount: d.software_amount || d.softwareAmount || d.softwareCharge || 0,
+            technicianAmount: d.technician_amount || d.technicianAmount || d.technicianCharge || 0,
+            courierAmount: d.courier_amount || d.courierAmount || d.courierCharge || 0,
+            amountPaid: d.amount_paid || d.amountPaid || 0,
+            pendingAmount: d.pending_amount || d.pendingAmount || 0,
+            paymentMode: d.payment_mode || d.paymentMode || '',
+            transactionId: d.transaction_id || d.transactionId || d.transactionRefNo || ''
+          })) : []
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
   const addRenewal = (renewalData) => {
     setRenewals(prev => [{ id: Date.now(), ...renewalData }, ...prev]);
   };
@@ -18,9 +151,9 @@ export const CustomerProvider = ({ children }) => {
     setIsLoading(true);
     return new Promise((resolve) => {
       setTimeout(() => {
-        const newCustomer = { 
+        const newCustomer = {
           ...data,
-          id: Date.now().toString(), 
+          id: Date.now().toString(),
           name: data.UserName || data.customerName || 'New Customer',
           mobile: data.mobileNumber || '0000000000',
           altMobile1: data.altMobile1 || '',
@@ -108,10 +241,10 @@ export const CustomerProvider = ({ children }) => {
         setCustomers(prev => prev.map(c => {
           const hasVehicle = c.vehicles?.some(v => v.id === vehicleId.toString());
           if (!hasVehicle) return c;
-          
-          const updatedVehicles = c.vehicles.map(v => 
-            v.id === vehicleId.toString() ? { 
-              ...v, 
+
+          const updatedVehicles = c.vehicles.map(v =>
+            v.id === vehicleId.toString() ? {
+              ...v,
               ...data,
               vehicleNo: data.vehicleNo || v.vehicleNo || '-',
               imei: data.imei || v.imei || '',
@@ -119,7 +252,7 @@ export const CustomerProvider = ({ children }) => {
               validity: data.validity || v.validity || '12',
             } : v
           );
-          
+
           return { ...c, vehicles: updatedVehicles };
         }));
         setIsLoading(false);
@@ -127,7 +260,7 @@ export const CustomerProvider = ({ children }) => {
       }, 500);
     });
   };
-  
+
   const deleteVehicle = async (customerId, vehicleId) => {
     setIsLoading(true);
     return new Promise((resolve) => {
@@ -197,7 +330,7 @@ export const CustomerProvider = ({ children }) => {
     const lowerPlatform = platform.toLowerCase().trim();
     const lowerUsername = username.toLowerCase().trim();
 
-    return customers.some(c => 
+    return customers.some(c =>
       c.platform && c.platform.toLowerCase().trim() === lowerPlatform &&
       c.name && c.name.toLowerCase().trim() === lowerUsername &&
       c.id !== excludeCustomerId?.toString()
@@ -205,15 +338,17 @@ export const CustomerProvider = ({ children }) => {
   };
 
   return (
-    <CustomerContext.Provider value={{ 
-      customers, 
-      renewals, 
-      addCustomer, 
-      updateCustomer, 
-      deleteCustomer, 
-      getCustomer, 
-      addRenewal, 
+    <CustomerContext.Provider value={{
+      customers,
+      renewals,
+      addCustomer,
+      updateCustomer,
+      deleteCustomer,
+      getCustomer,
+      addRenewal,
       isLoading,
+      fetchCustomers,
+      getCustomerById,
       getVehicle,
       updateVehicle,
       deleteVehicle,

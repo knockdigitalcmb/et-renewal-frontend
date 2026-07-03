@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const SimContext = createContext();
 
@@ -15,13 +15,11 @@ export const SimProvider = ({ children }) => {
         reject(new Error('This SIM Number is already assigned.'));
         return;
       }
-      
       const newSim = {
         id: Date.now().toString(),
         ...simData,
         createdAt: new Date().toISOString()
       };
-      
       setSims(prev => [newSim, ...prev]);
       resolve({ success: true, sim: newSim });
     });
