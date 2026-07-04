@@ -18,6 +18,7 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
       <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1000px]">
         <thead>
           <tr className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm border-b border-gray-100 dark:border-gray-700">
+            <th className="px-5 py-4 font-medium">S.no</th>
             <th className="px-5 py-4 font-medium">Customer Name</th>
             <th className="px-5 py-4 font-medium">Platform</th>
             <th className="px-5 py-4 font-medium">Mobile</th>
@@ -32,7 +33,8 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
         <tbody className="text-sm text-gray-600 dark:text-gray-300">
           {customers.map((customer, index) => (
             <tr key={customer.id || index} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
-              <td 
+              <td className="px-5 py-4">{index + 1}</td>
+              <td
                 className="px-5 py-4 font-medium text-gray-800 dark:text-gray-200 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                 onClick={() => onView(customer.id)}
               >
@@ -60,11 +62,25 @@ const CustomerTable = ({ customers, onView, onEdit, onRenew, onDelete }) => {
                 })()}
               </td> */}
               <td className="px-5 py-4">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium tracking-wide ${
-                  (customer.renewalDate === '-' || new Date(customer.renewalDate) < new Date()) ? 'bg-[#fee2e2] dark:bg-red-900/30 text-[#ef4444] dark:text-red-400' : 'bg-[#e6f8ec] dark:bg-green-900/30 text-[#2ecc71] dark:text-green-400'
-                }`}>
-                  {formatDate(customer.renewalDate)}
-                </span>
+                {(() => {
+                  if (!customer.renewalDate || customer.renewalDate === '-') {
+                    return (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium tracking-wide bg-[#fee2e2] dark:bg-red-900/30 text-[#ef4444] dark:text-red-400">
+                        -
+                      </span>
+                    );
+                  }
+
+                  const dates = customer.renewalDate.split(',').map(d => d.trim()).filter(Boolean);
+                  const isExpired = dates.some(d => new Date(d) < new Date());
+                  const formattedDates = dates.map(d => formatDate(d)).join(', ');
+
+                  return (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium tracking-wide ${isExpired ? 'bg-[#fee2e2] dark:bg-red-900/30 text-[#ef4444] dark:text-red-400' : 'bg-[#e6f8ec] dark:bg-green-900/30 text-[#2ecc71] dark:text-green-400'}`}>
+                      {formattedDates}
+                    </span>
+                  );
+                })()}
               </td>
               <td className="px-5 py-4">
                 <div className="flex items-center justify-center space-x-2">

@@ -53,7 +53,7 @@ const ViewCustomer = () => {
       <Header />
       <main className="flex-1 p-6">
         <div className="bg-white dark:bg-gray-800 rounded shadow-sm mx-auto border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-          
+
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border-b border-gray-100 dark:border-gray-700 gap-4">
             <h3 className="text-[1.1rem] font-bold text-gray-800 dark:text-white">
@@ -66,7 +66,7 @@ const ViewCustomer = () => {
               >
                 Edit Customer / Vehicles
               </button> */}
-              <button 
+              <button
                 onClick={() => navigate('/customers')}
                 className="w-full sm:w-auto bg-[#3498db] text-white px-4 py-2 text-sm font-medium hover:bg-[#2980b9] transition-colors rounded text-center"
               >
@@ -78,7 +78,7 @@ const ViewCustomer = () => {
           <div className="p-5">
             {/* Owner Information */}
             <h4 className="text-[1rem] font-bold text-gray-800 dark:text-gray-200 mb-4">Owner Information</h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0 mb-8 border-t border-gray-100 dark:border-gray-700">
               {/* Row 1 */}
               <div className="flex border-b border-gray-100 dark:border-gray-700">
@@ -89,7 +89,7 @@ const ViewCustomer = () => {
                 <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Email</div>
                 <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.email || 'N/A'}</div>
               </div>
-              
+
               {/* Row 2 */}
               <div className="flex border-b border-gray-100 dark:border-gray-700">
                 <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Primary Mobile</div>
@@ -99,7 +99,7 @@ const ViewCustomer = () => {
                 <div className="w-1/3 bg-[#f8f9fa] dark:bg-gray-700 p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-300 flex items-center transition-colors">Location</div>
                 <div className="w-2/3 p-3 text-[14px] text-gray-800 dark:text-gray-200 flex items-center transition-colors">{customer.location}</div>
               </div>
-              
+
               {/* Alternate Mobiles */}
               {customer.altMobile1 && (
                 <div className="flex border-b border-gray-100 dark:border-gray-700">
@@ -133,7 +133,7 @@ const ViewCustomer = () => {
               const totalRenewal = custRenewals.reduce((sum, r) => sum + (parseFloat(r.renewalAmount) || 0), 0);
               const totalPaid = custRenewals.reduce((sum, r) => sum + (parseFloat(r.amountPaid) || 0), 0);
               const totalPending = custRenewals.reduce((sum, r) => sum + (parseFloat(r.pendingAmount) || 0), 0);
-              
+
               if (custRenewals.length === 0) return null;
 
               return (
@@ -163,9 +163,11 @@ const ViewCustomer = () => {
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
                   <tr className="bg-[#f8f9fa] dark:bg-gray-800/50 border-t border-b border-gray-100 dark:border-gray-700">
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">S.No</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Vehicle Number</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Platform</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Vehicle Type</th>
+                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Device Model</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">IMEI</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">SIM Number</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Install Date</th>
@@ -178,9 +180,11 @@ const ViewCustomer = () => {
                   {customer.vehicles && customer.vehicles.length > 0 ? (
                     customer.vehicles.map((vehicle, index) => (
                       <tr key={vehicle.id || index} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{index + 1}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.vehicleNo}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.platform || '-'}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.vehicleType || 'Car'}</td>
+                        <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.deviceModel || '-'}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.imei}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.simNumber}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{formatDate(vehicle.installDate)}</td>
