@@ -1,44 +1,46 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const ProfileContext = createContext();
 
 export const useProfile = () => useContext(ProfileContext);
 
 export const ProfileProvider = ({ children }) => {
-  const defaultProfile = {
-    fullName: 'Admin',
-    role: 'Administrator',
-    email: 'admin@example.com',
-    mobileNumber: '9876543210',
-    profileImage: null,
-    accountCreatedDate: '2024-01-10'
-  };
-
-  const [profile, setProfile] = useState(() => {
+  // Read the real user object written by Login
+  const getInitialProfile = () => {
     try {
-      const saved = localStorage.getItem('userProfile');
-      if (saved) {
-        return JSON.parse(saved);
+      const user = localStorage.getItem('user');
+      if (user) {
+        const parsed = JSON.parse(user);
+        return {
+          fullName: parsed.fullName || parsed.name || '',
+          role: parsed.role || '',
+          email: parsed.email || '',
+          mobileNumber: parsed.mobileNumber || parsed.phone || '',
+          profileImage: parsed.profileImage || null,
+          accountCreatedDate: parsed.createdAt || parsed.accountCreatedDate || '',
+        };
       }
     } catch (e) {
-      console.error("Error loading profile", e);
+      console.error('Error loading user profile', e);
     }
-    return defaultProfile;
-  });
+    return {
+      fullName: '',
+      role: '',
+      email: '',
+      mobileNumber: '',
+      profileImage: null,
+      accountCreatedDate: '',
+    };
+  };
 
-  useEffect(() => {
-    localStorage.setItem('userProfile', JSON.stringify(profile));
-  }, [profile]);
+  const [profile, setProfile] = useState(getInitialProfile);
 
   const updateProfile = (newProfile) => {
     setProfile(prev => ({ ...prev, ...newProfile }));
   };
 
   const clearSession = () => {
-    // For now we just clear the auth/session state or perform a basic reset.
-    // If we wanted to clear everything, we could do localStorage.clear(), 
-    // but we want to retain other CRM data for demo purposes.
-    // So we just clear the profile if necessary, or just rely on navigation.
+    // Session cleared via logout — handled by ProtectedRoute / auth flow
   };
 
   return (

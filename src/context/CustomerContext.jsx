@@ -1,30 +1,154 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const CustomerContext = createContext();
 
 export const useCustomer = () => useContext(CustomerContext);
 
 export const CustomerProvider = ({ children }) => {
-  const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem('crm_customers');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [renewals, setRenewals] = useState(() => {
-    const saved = localStorage.getItem('crm_renewals');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
+  const [customers, setCustomers] = useState([]);
+  const [renewals, setRenewals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem('crm_customers', JSON.stringify(customers));
-  }, [customers]);
+  const fetchCustomers = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch('http://103.235.105.121:3000/api/v1/customers', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const customerList = Array.isArray(result.data) ? result.data : [];
+        const mappedCustomers = customerList.map(c => ({
+          id: c.id,
+          name: c.name || '-',
+          mobile: c.phone_number || '-',
+          altMobile1: c.phone_number_1 || '',
+          altMobile2: c.phone_number_2 || '',
+          altMobile3: c.phone_number_3 || '',
+          email: c.email || '',
+          location: c.location || '-',
+          leadClosureBy: c.devices && c.devices.length > 0 ? (c.devices[0].lead_closer || '-') : '-',
+          totalVehicles: c.devices ? c.devices.length : 0,
+          pendingAmount: c.devices && c.devices.length > 0 ? (c.devices[0].renewal_payment_status === 0 ? 1 : 0) : 0,
+          // isPaid: c.devices && c.devices.length > 0 ? c.devices[0].renewal_payment_status !== 0 : true,
+          // renewalDate: c.devices && c.devices.length > 0 && c.devices[0].next_renew_date ? c.devices[0].next_renew_date : '-',
+          // installDate: c.devices && c.devices.length > 0 && c.devices[0].installation_date ? c.devices[0].installation_date : '-',
+          // vehicleNo: c.devices && c.devices.length > 0 ? (c.devices[0].vehicle_number || '-') : '-',
+          // vehicles: c.devices && c.devices.length > 0 ? c.devices.length : '-',
+          renewalDate: c.devices && c.devices.length > 0 ? c.devices.map(d => (
+            d.next_renew_date || ''
+          )).join(', ') : '-',
+          platform: c.devices && c.devices.length > 0 ? c.devices.map(d => (
+            d.platforms.platform_name || ''
+          )).join(', ') : '-',
+          vehicles: c.devices ? c.devices.map(d => ({
+            id: d.id,
+            vehicleNo: d.vehicle_number || '-',
+            vehicleType: d.vehicle_type || '',
+            platform: d.platforms.platform_name || '',
+            imei: d.imei || '',
+            simNumber: d.sim_number || '',
+            deviceModel: d.device_type || '',
+            installDate: d.installation_date || '-',
+            validity: d.validity || '12',
+            expiryDate: d.next_renew_date || '-',
+            installPerson: d.install_person || d.installationPerson || '',
+            leadClosureBy: d.lead_closer || d.leadClosureBy || '',
+            totalAmount: d.total_amount || d.totalAmount || 0,
+            totalSaleAmount: d.total_sale_amount || d.totalSaleAmount || d.total_amount || d.totalAmount || 0,
+            deviceAmount: d.device_amount || d.deviceAmount || d.deviceCharge || 0,
+            simAmount: d.sim_amount || d.simAmount || d.simCharge || 0,
+            softwareAmount: d.software_amount || d.softwareAmount || d.softwareCharge || 0,
+            technicianAmount: d.technician_amount || d.technicianAmount || d.technicianCharge || 0,
+            courierAmount: d.courier_amount || d.courierAmount || d.courierCharge || 0,
+            amountPaid: d.amount_paid || d.amountPaid || 0,
+            pendingAmount: d.pending_amount || d.pendingAmount || 0,
+            paymentMode: d.payment_mode || d.paymentMode || '',
+            transactionId: d.transaction_id || d.transactionId || d.transactionRefNo || ''
+          })) : []
+        }));
+        setCustomers(mappedCustomers);
+      }
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('crm_renewals', JSON.stringify(renewals));
-  }, [renewals]);
+    fetchCustomers();
+  }, [fetchCustomers]);
 
+  const getCustomerById = useCallback(async (id) => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`http://103.235.105.121:3000/api/v1/customers/${id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result) {
+        const c = result.data || result;
+        return {
+          id: c.id,
+          name: c.name || '-',
+          mobile: c.phone_number || '-',
+          altMobile1: c.phone_number_1 || '',
+          altMobile2: c.phone_number_2 || '',
+          altMobile3: c.phone_number_3 || '',
+          email: c.email || '',
+          location: c.location || '-',
+          platform: c.devices && c.devices.length > 0 ? (c.devices[0].platform || '-') : '-',
+          leadClosureBy: c.devices && c.devices.length > 0 ? (c.devices[0].lead_closer || '-') : '-',
+          totalVehicles: c.devices ? c.devices.length : 0,
+          pendingAmount: c.devices && c.devices.length > 0 ? (c.devices[0].renewal_payment_status === 0 ? 1 : 0) : 0,
+          isPaid: c.devices && c.devices.length > 0 ? c.devices[0].renewal_payment_status !== 0 : true,
+          renewalDate: c.devices && c.devices.length > 0 && c.devices[0].next_renew_date ? c.devices[0].next_renew_date : '-',
+          installDate: c.devices && c.devices.length > 0 && c.devices[0].installation_date ? c.devices[0].installation_date : '-',
+          vehicleNo: c.devices && c.devices.length > 0 ? (c.devices[0].vehicle_number || '-') : '-',
+          vehicles: c.devices ? c.devices.map(d => ({
+            id: d.id,
+            vehicleNo: d.vehicle_number || '-',
+            vehicleType: d.vehicle_types.vehicle_type_name || '',
+            platform: d.platforms.platform_name || '',
+            imei: d.imeis.imei_number || '',
+            simNumber: d.sims.sim_number || '',
+            deviceModel: d.device_models.model_name || '',
+            installDate: d.installation_date || '-',
+            validity: d.validity || '12',
+            expiryDate: d.next_renew_date || '-',
+            installPerson: d.install_person || d.installationPerson || '',
+            leadClosureBy: d.lead_closer || d.leadClosureBy || '',
+            totalAmount: d.total_amount || d.totalAmount || 0,
+            totalSaleAmount: d.total_sale_amount || d.totalSaleAmount || d.total_amount || d.totalAmount || 0,
+            deviceAmount: d.device_amount || d.deviceAmount || d.deviceCharge || 0,
+            simAmount: d.sim_amount || d.simAmount || d.simCharge || 0,
+            softwareAmount: d.software_amount || d.softwareAmount || d.softwareCharge || 0,
+            technicianAmount: d.technician_amount || d.technicianAmount || d.technicianCharge || 0,
+            courierAmount: d.courier_amount || d.courierAmount || d.courierCharge || 0,
+            amountPaid: d.amount_paid || d.amountPaid || 0,
+            pendingAmount: d.pending_amount || d.pendingAmount || 0,
+            paymentMode: d.payment_mode || d.paymentMode || '',
+            transactionId: d.transaction_id || d.transactionId || d.transactionRefNo || ''
+          })) : []
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
   const addRenewal = (renewalData) => {
     setRenewals(prev => [{ id: Date.now(), ...renewalData }, ...prev]);
   };
@@ -33,8 +157,9 @@ export const CustomerProvider = ({ children }) => {
     setIsLoading(true);
     return new Promise((resolve) => {
       setTimeout(() => {
-        const newCustomer = { 
-          id: Date.now().toString(), 
+        const newCustomer = {
+          ...data,
+          id: Date.now().toString(),
           name: data.UserName || data.customerName || 'New Customer',
           mobile: data.mobileNumber || '0000000000',
           altMobile1: data.altMobile1 || '',
@@ -42,34 +167,37 @@ export const CustomerProvider = ({ children }) => {
           altMobile3: data.altMobile3 || '',
           email: data.email || '',
           location: data.location || '-',
+          platform: data.platform || '',
           leadClosureBy: data.leadClosureBy || '-',
-          totalVehicles: 1,
+          totalVehicles: data.vehicles ? data.vehicles.length : 1,
           pendingAmount: data.pendingAmount > 0 ? data.pendingAmount : 0,
           isPaid: data.pendingAmount <= 0,
           renewalDate: data.expiryDate || '-',
-          installDate: data.installationDate || '-',
-          vehicleNo: data.vehicleNumber || '-',
-          vehicles: [{
-            id: Date.now().toString() + '-v1',
-            vehicleNo: data.vehicleNumber || '-',
-            vehicleType: data.vehicleType || '',
-            platform: data.platform || '',
-            imei: data.imeiNumber || '',
-            simNumber: data.simNumber || '',
-            deviceModel: data.deviceModel || '',
-            devicePrice: data.devicePrice || 0,
-            simPrice: data.simPrice || 0,
-            totalPayment: data.totalPaymentReceived || 0,
+          installDate: data.installationDate || data.installDate || '-',
+          vehicleNo: data.vehicles && data.vehicles.length > 0 ? (data.vehicles[0].vehicleNumber || data.vehicles[0].vehicleNo || '-') : '-',
+          vehicles: data.vehicles && data.vehicles.length > 0 ? data.vehicles.map((v, index) => ({
+            id: Date.now().toString() + `-v${index + 1}`,
+            vehicleNo: v.vehicleNumber || v.vehicleNo || '-',
+            vehicleType: v.vehicleType || '',
+            platform: v.platform || '',
+            imei: v.imeiNumber || v.imei || '',
+            simNumber: v.simNumber || '',
+            deviceModel: v.deviceModel || '',
+            deviceCharge: data.deviceCharge || 0,
+            simCharge: data.simCharge || 0,
+            softwareCharge: data.softwareCharge || 0,
+            technicianCharge: data.technicianCharge || 0,
+            courierCharge: data.courierCharge || 0,
+            totalAmount: data.totalAmount || 0,
             amountPaid: data.amountPaid || 0,
             pendingAmount: data.pendingAmount > 0 ? data.pendingAmount : 0,
             paymentMode: data.paymentMode || '',
-            installPerson: data.installationPerson || '',
+            installPerson: data.installationPerson || data.installPerson || '',
             leadClosureBy: data.leadClosureBy || '-',
-            installDate: data.installationDate || '-',
+            installDate: data.installationDate || data.installDate || '-',
             validity: data.validity || '12',
             expiryDate: data.expiryDate || '-'
-          }],
-          ...data
+          })) : []
         };
         setCustomers(prev => [newCustomer, ...prev]);
         setIsLoading(false);
@@ -119,11 +247,18 @@ export const CustomerProvider = ({ children }) => {
         setCustomers(prev => prev.map(c => {
           const hasVehicle = c.vehicles?.some(v => v.id === vehicleId.toString());
           if (!hasVehicle) return c;
-          
-          const updatedVehicles = c.vehicles.map(v => 
-            v.id === vehicleId.toString() ? { ...v, ...data } : v
+
+          const updatedVehicles = c.vehicles.map(v =>
+            v.id === vehicleId.toString() ? {
+              ...v,
+              ...data,
+              vehicleNo: data.vehicleNo || v.vehicleNo || '-',
+              imei: data.imei || v.imei || '',
+              installDate: data.installDate || data.installationDate || v.installDate || '-',
+              validity: data.validity || v.validity || '12',
+            } : v
           );
-          
+
           return { ...c, vehicles: updatedVehicles };
         }));
         setIsLoading(false);
@@ -131,7 +266,7 @@ export const CustomerProvider = ({ children }) => {
       }, 500);
     });
   };
-  
+
   const deleteVehicle = async (customerId, vehicleId) => {
     setIsLoading(true);
     return new Promise((resolve) => {
@@ -160,7 +295,11 @@ export const CustomerProvider = ({ children }) => {
           if (c.id === customerId.toString()) {
             const newVehicle = {
               id: Date.now().toString(),
-              ...vehicleData
+              ...vehicleData,
+              vehicleNo: vehicleData.vehicleNo || vehicleData.vehicleNumber || '-',
+              imei: vehicleData.imei || vehicleData.imeiNumber || '',
+              installDate: vehicleData.installDate || vehicleData.installationDate || '-',
+              validity: vehicleData.validity || '12',
             };
             return {
               ...c,
@@ -192,21 +331,36 @@ export const CustomerProvider = ({ children }) => {
     return false;
   };
 
+  const checkDuplicateUsername = (platform, username, excludeCustomerId = null) => {
+    if (!platform || !username) return false;
+    const lowerPlatform = platform.toLowerCase().trim();
+    const lowerUsername = username.toLowerCase().trim();
+
+    return customers.some(c =>
+      c.platform && c.platform.toLowerCase().trim() === lowerPlatform &&
+      c.name && c.name.toLowerCase().trim() === lowerUsername &&
+      c.id !== excludeCustomerId?.toString()
+    );
+  };
+
   return (
-    <CustomerContext.Provider value={{ 
-      customers, 
-      renewals, 
-      addCustomer, 
-      updateCustomer, 
-      deleteCustomer, 
-      getCustomer, 
-      addRenewal, 
+    <CustomerContext.Provider value={{
+      customers,
+      renewals,
+      addCustomer,
+      updateCustomer,
+      deleteCustomer,
+      getCustomer,
+      addRenewal,
       isLoading,
+      fetchCustomers,
+      getCustomerById,
       getVehicle,
       updateVehicle,
       deleteVehicle,
       addVehicle,
-      checkDuplicateVehicle
+      checkDuplicateVehicle,
+      checkDuplicateUsername
     }}>
       {children}
     </CustomerContext.Provider>

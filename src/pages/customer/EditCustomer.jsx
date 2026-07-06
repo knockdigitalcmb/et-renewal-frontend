@@ -8,18 +8,18 @@ import Header from '../../components/layout/Header';
 import { useForm } from 'react-hook-form';
 import { FiEdit2, FiTrash2, FiRefreshCw } from 'react-icons/fi';
 import {
-  restrictName, restrictAlphabetsSpaces, restrictNumbers, 
+  restrictName, restrictAlphabetsSpaces, restrictNumbers,
   pasteName, pasteAlphabetsSpaces, pasteNumbers, trimData, regexPatterns
 } from '../../utils/validationUtils';
 
 const EditCustomer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getCustomer, updateCustomer, deleteVehicle } = useCustomer();
+  const { getCustomer, updateCustomer, deleteVehicle, checkDuplicateUsername } = useCustomer();
   const { resources } = useResource();
   const { showModal } = useModal();
   const activeResources = resources.filter(r => r.status === 'Active');
-  
+
   const [customer, setCustomer] = useState(null);
 
   const { register, handleSubmit, reset, watch, formState: { errors, dirtyFields } } = useForm({
@@ -41,6 +41,7 @@ const EditCustomer = () => {
         altMobile3: data.altMobile3 || '',
         email: data.email,
         location: data.location,
+        platform: data.platform || '',
         leadClosureBy: data.leadClosureBy
       });
     } else {
@@ -48,8 +49,19 @@ const EditCustomer = () => {
     }
   }, [id, getCustomer, navigate, reset]);
 
+  const platformWatch = watch('platform') || '';
+  const nameWatch = watch('name') || '';
+
+  const isDuplicateUsername = React.useMemo(() => {
+    return checkDuplicateUsername(platformWatch, nameWatch, id);
+  }, [platformWatch, nameWatch, id, checkDuplicateUsername]);
+
   const onSubmit = async (data) => {
     const trimmedData = trimData(data);
+    if (checkDuplicateUsername(trimmedData.platform, trimmedData.name, id)) {
+      alert(`Error: Username "${trimmedData.name}" already exists in platform "${trimmedData.platform}".`);
+      return;
+    }
     await updateCustomer(id, trimmedData);
     setCustomer({ ...customer, ...trimmedData });
     showModal({ type: 'success', title: 'Success', message: 'Owner updated successfully' });
@@ -62,9 +74,9 @@ const EditCustomer = () => {
       message: 'Are you sure you want to delete this vehicle? This action cannot be undone.',
       buttons: [
         { text: 'Cancel', style: 'secondary' },
-        { 
-          text: 'Delete', 
-          style: 'danger', 
+        {
+          text: 'Delete',
+          style: 'danger',
           onClick: async () => {
             await deleteVehicle(id, vehicleId);
             setCustomer(getCustomer(id));
@@ -75,9 +87,10 @@ const EditCustomer = () => {
   };
 
   const getInputClass = (fieldName) => {
-    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200";
-    if (errors[fieldName]) return `${baseClass} border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/20`;
-    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 dark:border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50 dark:bg-green-900/20`;
+    const baseClass = "w-full border rounded px-3 py-2 text-[14px] focus:outline-none focus:ring-1 transition-colors";
+    if (fieldName === 'name' && isDuplicateUsername) return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50`;
+    if (errors[fieldName]) return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50`;
+    if (dirtyFields[fieldName] && !errors[fieldName] && watch(fieldName)) return `${baseClass} border-green-500 focus:border-green-500 focus:ring-green-500 bg-green-50`;
     return `${baseClass} border-gray-200 focus:border-blue-500 focus:ring-blue-500`;
   };
 
@@ -88,20 +101,20 @@ const EditCustomer = () => {
       <Header />
       <main className="flex-1 p-6">
         <div className="bg-white dark:bg-gray-800 rounded shadow-sm mx-auto border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-          
+
           {/* Header Section */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-gray-100 dark:border-gray-700 gap-4">
             <h3 className="text-[1.1rem] font-bold text-gray-800 dark:text-white">
               Edit Customer: {customer.name}
             </h3>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full md:w-auto">
-              <button 
+              <button
                 onClick={() => navigate(`/customers/view/${id}`)}
                 className="w-full sm:w-auto bg-[#3498db] text-white px-4 py-2 text-sm font-medium hover:bg-[#2980b9] transition-colors rounded text-center"
               >
                 View Details
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/customers')}
                 className="w-full sm:w-auto bg-[#4a6cf7] text-white px-4 py-2 text-sm font-medium hover:bg-[#3a5bd9] transition-colors rounded text-center"
               >
@@ -114,11 +127,27 @@ const EditCustomer = () => {
             {/* Edit Owner Details Section */}
             <h4 className="text-[1rem] font-bold text-gray-800 dark:text-gray-200 mb-4">Edit Owner Details</h4>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <div>
+                  <label className="block text-[13px] font-semibold text-gray-700 mb-1">Platform *</label>
+                  <select
+                    {...register('platform', { required: 'Platform is required' })}
+                    className={getInputClass('platform')}
+                  >
+                    <option value="">Select Platform</option>
+                    <option value="Tracco">Tracco</option>
+                    <option value="EagleIndia">EagleIndia</option>
+                    <option value="Treckin">Treckin</option>
+                    <option value="GPS Monitor">GPS Monitor</option>
+                    <option value="Onequik">Onequik</option>
+                    <option value="Nowilup">Nowilup</option>
+                  </select>
+                  {errors.platform && <p className="text-red-500 text-xs mt-1">{errors.platform.message}</p>}
+                </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Customer Name *</label>
-                  <input 
-                    {...register('name', { 
+                  <input
+                    {...register('name', {
                       required: 'Customer Name is required',
                       minLength: { value: 3, message: 'Minimum 3 characters' },
                       pattern: { value: regexPatterns.customerName, message: 'Invalid characters' }
@@ -128,11 +157,14 @@ const EditCustomer = () => {
                     className={getInputClass('name')}
                   />
                   {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+                  {isDuplicateUsername && (
+                    <p className="text-red-500 text-xs mt-1">Username already exists in selected platform</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Mobile Number *</label>
-                  <input 
-                    {...register('mobile', { 
+                  <input
+                    {...register('mobile', {
                       required: 'Mobile Number is required',
                       pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' }
                     })}
@@ -144,7 +176,7 @@ const EditCustomer = () => {
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                  <input 
+                  <input
                     {...register('email', {
                       pattern: { value: /^\S+@\S+\.\S+$/i, message: 'Invalid email format' }
                     })}
@@ -155,8 +187,8 @@ const EditCustomer = () => {
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Location *</label>
-                  <input 
-                    {...register('location', { 
+                  <input
+                    {...register('location', {
                       required: 'Location is required',
                       pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
                     })}
@@ -168,11 +200,11 @@ const EditCustomer = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Alternate Mobile 1</label>
-                  <NumericInput  
-                    {...register('altMobile1', { 
+                  <NumericInput
+                    {...register('altMobile1', {
                       pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
                       validate: (value) => !value || value !== watch('mobile') || 'Cannot match Primary Mobile'
                     })}
@@ -184,8 +216,8 @@ const EditCustomer = () => {
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Alternate Mobile 2</label>
-                  <NumericInput  
-                    {...register('altMobile2', { 
+                  <NumericInput
+                    {...register('altMobile2', {
                       pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
                       validate: (value) => {
                         if (!value) return true;
@@ -202,8 +234,8 @@ const EditCustomer = () => {
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Alternate Mobile 3</label>
-                  <NumericInput  
-                    {...register('altMobile3', { 
+                  <NumericInput
+                    {...register('altMobile3', {
                       pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
                       validate: (value) => {
                         if (!value) return true;
@@ -221,7 +253,7 @@ const EditCustomer = () => {
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1">Lead Closure By</label>
-                  <select 
+                  <select
                     {...register('leadClosureBy', { required: 'Please select Lead Closure Employee' })}
                     className={getInputClass('leadClosureBy')}
                   >
@@ -240,10 +272,10 @@ const EditCustomer = () => {
               </div>
 
               <div className="pt-2">
-                <button 
-                  type="submit" 
-                  disabled={Object.keys(errors).length > 0}
-                  className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${Object.keys(errors).length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#4a6cf7] hover:bg-[#3a5bd9]'}`}
+                <button
+                  type="submit"
+                  disabled={Object.keys(errors).length > 0 || isDuplicateUsername}
+                  className={`w-full text-white py-2 rounded text-[14px] font-medium transition-colors ${(Object.keys(errors).length > 0 || isDuplicateUsername) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#4a6cf7] hover:bg-[#3a5bd9]'}`}
                 >
                   Update Owner
                 </button>
@@ -262,7 +294,7 @@ const EditCustomer = () => {
                 + Add New Vehicle
               </button> */}
             </div>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -273,7 +305,7 @@ const EditCustomer = () => {
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">IMEI</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">SIM Number</th>
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Total Payment</th>
-                    <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending</th>
+                    {/* <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Pending</th> */}
                     <th className="p-3 text-[13px] font-semibold text-gray-600 dark:text-gray-400">Actions</th>
                   </tr>
                 </thead>
@@ -287,7 +319,7 @@ const EditCustomer = () => {
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.imei}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">{vehicle.simNumber}</td>
                         <td className="p-3 text-[14px] text-gray-700 dark:text-gray-300">₹{vehicle.totalAmount || 0}</td>
-                        <td className="p-3">
+                        {/* <td className="p-3">
                           {vehicle.pendingAmount <= 0 ? (
                             <span className="bg-[#d4edda] dark:bg-green-900/30 text-[#155724] dark:text-green-400 px-2 py-1 rounded text-[12px] font-medium tracking-wide">
                               Paid
@@ -297,10 +329,10 @@ const EditCustomer = () => {
                               ₹{vehicle.pendingAmount}
                             </span>
                           )}
-                        </td>
+                        </td> */}
                         <td className="p-3 flex space-x-2">
                           <div className="relative">
-                            <button 
+                            <button
                               onClick={() => navigate(`/customers/renewal/${vehicle.id}`)}
                               className="bg-[#2ecc71] hover:bg-[#27ae60] text-white p-1.5 rounded transition-colors"
                               title="Renew Vehicle"
@@ -320,14 +352,14 @@ const EditCustomer = () => {
                               return null;
                             })()}
                           </div>
-                          <button 
+                          <button
                             onClick={() => navigate(`/customers/vehicle/edit/${vehicle.id}`)}
                             className="bg-[#f1c40f] hover:bg-[#f39c12] text-white p-1.5 rounded transition-colors"
                             title="Edit Vehicle"
                           >
                             <FiEdit2 size={14} />
                           </button>
-                          <button 
+                          <button
                             onClick={() => confirmDelete(vehicle.id)}
                             className="bg-[#e74c3c] hover:bg-[#c0392b] text-white p-1.5 rounded transition-colors"
                             title="Delete Vehicle"

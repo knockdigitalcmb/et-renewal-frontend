@@ -7,7 +7,13 @@ import { useSettings } from '../../context/SettingsContext';
 import { FiEdit2, FiTrash2, FiSearch } from 'react-icons/fi';
 
 const VehicleTypeMaster = () => {
-  const { vehicleTypes, addVehicleType, updateVehicleType, deleteVehicleType } = useVehicleType();
+  const {
+  vehicleTypes,
+  addVehicleType,
+  updateVehicleType,
+  deleteVehicleType,
+  isLoading
+} = useVehicleType();
   const { showModal } = useModal();
   const { formatDate } = useSettings();
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,9 +34,29 @@ const VehicleTypeMaster = () => {
       showModal({ type: 'error', title: 'Duplicate Name', message: 'Vehicle Type already exists!' });
       return;
     }
-    await addVehicleType({ name: data.name.trim(), status: data.status });
-    resetAdd();
-    showModal({ type: 'success', title: 'Success', message: 'Vehicle Type added successfully.' });
+    const result = await addVehicleType({
+  name: data.name.trim(),
+  status: data.status
+});
+
+if (result.success) {
+  resetAdd();
+
+  showModal({
+    type: "success",
+    title: "Success",
+    message:
+      "Vehicle Type added successfully."
+  });
+} else {
+  showModal({
+    type: "error",
+    title: "Error",
+    message:
+      result.message ||
+      "Failed to create vehicle type"
+  });
+}
   };
 
   const onEditSubmit = async (data) => {
@@ -40,10 +66,35 @@ const VehicleTypeMaster = () => {
       showModal({ type: 'error', title: 'Duplicate Name', message: 'Vehicle Type name already exists!' });
       return;
     }
-    await updateVehicleType(editingType.id, { name: data.name.trim(), status: data.status });
-    setShowEditModal(false);
-    setEditingType(null);
-    showModal({ type: 'success', title: 'Success', message: 'Vehicle Type updated successfully.' });
+    const result =
+  await updateVehicleType(
+    editingType.id,
+    {
+      name: data.name.trim(),
+      status: data.status
+    }
+  );
+
+if (result.success) {
+  setShowEditModal(false);
+
+  setEditingType(null);
+
+  showModal({
+    type: "success",
+    title: "Success",
+    message:
+      "Vehicle Type updated successfully."
+  });
+} else {
+  showModal({
+    type: "error",
+    title: "Error",
+    message:
+      result.message ||
+      "Failed to update vehicle type"
+  });
+}
   };
 
   const openEditModal = (vt) => {
@@ -63,8 +114,26 @@ const VehicleTypeMaster = () => {
           text: 'Delete', 
           style: 'danger', 
           onClick: async () => {
-            await deleteVehicleType(id);
-          }
+  const result =
+    await deleteVehicleType(id);
+
+  if (result.success) {
+    showModal({
+      type: "success",
+      title: "Success",
+      message:
+        "Vehicle Type deleted successfully."
+    });
+  } else {
+    showModal({
+      type: "error",
+      title: "Error",
+      message:
+        result.message ||
+        "Delete failed"
+    });
+  }
+}
         }
       ]
     });
@@ -109,19 +178,23 @@ const VehicleTypeMaster = () => {
                   </select>
                 </div>
                 <div className="flex space-x-3">
-                  <button 
-                    type="submit"
-                    className="flex-1 bg-[#4a6cf7] hover:bg-[#3a5bd9] text-white px-4 py-2 rounded font-medium text-sm transition-colors shadow-sm"
-                  >
-                    Save
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => resetAdd()}
-                    className="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded font-medium text-sm transition-colors"
-                  >
-                    Reset
-                  </button>
+                  <div className="flex space-x-3">
+  <button
+    type="submit"
+    disabled={isLoading}
+    className="flex-1 bg-[#4a6cf7] hover:bg-[#3a5bd9] text-white px-4 py-2 rounded font-medium text-sm transition-colors shadow-sm disabled:opacity-50"
+  >
+    {isLoading ? "Saving..." : "Save"}
+  </button>
+
+  <button
+    type="button"
+    onClick={() => resetAdd()}
+    className="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded font-medium text-sm transition-colors"
+  >
+    Reset
+  </button>
+</div>
                 </div>
               </div>
             </form>
@@ -232,12 +305,13 @@ const VehicleTypeMaster = () => {
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-[#4a6cf7] rounded hover:bg-[#3a5bd9] transition-colors"
-                >
-                  Update
-                </button>
+                <button
+  type="submit"
+  disabled={isLoading}
+  className="px-4 py-2 text-sm font-medium text-white bg-[#4a6cf7] rounded hover:bg-[#3a5bd9] transition-colors disabled:opacity-50"
+>
+  {isLoading ? "Updating..." : "Update"}
+</button>
               </div>
             </form>
           </div>

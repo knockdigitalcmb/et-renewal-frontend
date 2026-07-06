@@ -6,66 +6,389 @@ export const useDeviceModel = () => {
   return useContext(DeviceModelContext);
 };
 
-export const DeviceModelProvider = ({ children }) => {
-  const [deviceModels, setDeviceModels] = useState(() => {
-    const saved = localStorage.getItem('deviceModels');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: crypto.randomUUID(), name: 'GT06N', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'AT4', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'ET100', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'ET200', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'Concox', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'Teltonika', status: 'Active' },
-      { id: crypto.randomUUID(), name: 'Ruptela', status: 'Active' }
-    ];
-  });
 
-  useEffect(() => {
-    localStorage.setItem('deviceModels', JSON.stringify(deviceModels));
-  }, [deviceModels]);
 
-  const addDeviceModel = (model) => {
-    setDeviceModels([...deviceModels, { 
-      ...model, 
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }]);
-  };
+const API_URL =
+  "http://103.235.105.121:3000/api/v1";
 
-  const updateDeviceModel = (id, updatedData) => {
-    setDeviceModels(deviceModels.map(dm => 
-      dm.id === id ? { ...dm, ...updatedData, updatedAt: new Date().toISOString() } : dm
-    ));
-  };
+export const DeviceModelProvider =
+  ({ children }) => {
+    const [deviceModels,
+      setDeviceModels] =
+      useState([]);
 
-  const deleteDeviceModel = (id) => {
-    setDeviceModels(deviceModels.filter(dm => dm.id !== id));
-  };
+    const [isLoading,
+      setIsLoading] =
+      useState(false);
 
-  const toggleStatus = (id) => {
-    setDeviceModels(deviceModels.map(dm => 
-      dm.id === id ? { ...dm, status: dm.status === 'Active' ? 'Inactive' : 'Active' } : dm
-    ));
-  };
+    // ======================
+    // GET ALL DEVICE MODELS
+    // ======================
 
-  const checkDuplicateName = (name, excludeId = null) => {
-    return deviceModels.some(dm => 
-      dm.name.toLowerCase() === name.toLowerCase() && dm.id !== excludeId
+    const fetchDeviceModels =
+      async () => {
+        try {
+          setIsLoading(true);
+
+          const token =
+            localStorage.getItem(
+              "accessToken"
+            );
+
+          const response =
+            await fetch(
+              `${API_URL}/device-models`,
+              {
+                method: "GET",
+                headers: {
+                  "Authorization":
+                    `Bearer ${token}`,
+                },
+              }
+            );
+
+          const result =
+            await response.json();
+
+          if (
+            result.success
+          ) {
+            const formattedData =
+              result.data.map(
+                (item) => ({
+                  id: item.id,
+                  name:
+                    item.model_name,
+                  manufacturer:
+                    item.model_manufacturer,
+                  description:
+                    item.model_desc,
+                  status:
+                    item.is_active
+                      ? "Active"
+                      : "Inactive",
+                  createdAt:
+                    item.created_at,
+                  updatedAt:
+                    item.updated_at,
+                })
+              );
+
+            setDeviceModels(
+              formattedData
+            );
+          }
+        } catch (error) {
+          console.error(
+            "Fetch Device Models Error:",
+            error
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+    useEffect(() => {
+      fetchDeviceModels();
+    }, []);
+
+    // ======================
+    // CREATE DEVICE MODEL
+    // ======================
+
+    const addDeviceModel =
+      async (data) => {
+        try {
+          setIsLoading(true);
+
+          const token =
+            localStorage.getItem(
+              "accessToken"
+            );
+
+          const response =
+            await fetch(
+              `${API_URL}/device-models`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                  "Authorization":
+                    `Bearer ${token}`,
+                },
+                body:
+                  JSON.stringify({
+                    modelName:
+                      data.name,
+                    modelManufacturer:
+                      data.manufacturer ||
+                      null,
+                    modelDesc:
+                      data.description ||
+                      "",
+                    isActive:
+                      data.status ===
+                      "Active",
+                  }),
+              }
+            );
+
+          const result =
+            await response.json();
+
+          if (
+            result.success
+          ) {
+            await fetchDeviceModels();
+
+            return {
+              success: true,
+            };
+          }
+
+          return {
+            success: false,
+            message:
+              result.message,
+          };
+        } catch (error) {
+          console.error(
+            "Create Device Model Error:",
+            error
+          );
+
+          return {
+            success: false,
+            message:
+              "Server Error",
+          };
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+    // ======================
+    // UPDATE DEVICE MODEL
+    // ======================
+
+    const updateDeviceModel =
+      async (
+        id,
+        data
+      ) => {
+        try {
+          setIsLoading(true);
+
+          const token =
+            localStorage.getItem(
+              "accessToken"
+            );
+
+          const response =
+            await fetch(
+              `${API_URL}/device-models/${id}`,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                  "Authorization":
+                    `Bearer ${token}`,
+                },
+                body:
+                  JSON.stringify({
+                    modelName:
+                      data.name,
+                    modelManufacturer:
+                      data.manufacturer ||
+                      null,
+                    modelDesc:
+                      data.description ||
+                      "",
+                    isActive:
+                      data.status ===
+                      "Active",
+                  }),
+              }
+            );
+
+          const result =
+            await response.json();
+
+          if (
+            result.success
+          ) {
+            await fetchDeviceModels();
+
+            return {
+              success: true,
+            };
+          }
+
+          return {
+            success: false,
+            message:
+              result.message,
+          };
+        } catch (error) {
+          console.error(
+            "Update Device Model Error:",
+            error
+          );
+
+          return {
+            success: false,
+            message:
+              "Server Error",
+          };
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+    // ======================
+    // DELETE DEVICE MODEL
+    // ======================
+
+    const deleteDeviceModel =
+      async (id) => {
+        try {
+          setIsLoading(true);
+
+          const token =
+            localStorage.getItem(
+              "accessToken"
+            );
+
+          const response =
+            await fetch(
+              `${API_URL}/device-models/${id}`,
+              {
+                method:
+                  "DELETE",
+                headers: {
+                  "Authorization":
+                    `Bearer ${token}`,
+                },
+              }
+            );
+
+          const result =
+            await response.json();
+
+          if (
+            result.success
+          ) {
+            await fetchDeviceModels();
+
+            return {
+              success: true,
+            };
+          }
+
+          return {
+            success: false,
+            message:
+              result.message,
+          };
+        } catch (error) {
+          console.error(
+            "Delete Device Model Error:",
+            error
+          );
+
+          return {
+            success: false,
+            message:
+              "Server Error",
+          };
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+    // ======================
+    // GET MODEL BY ID
+    // ======================
+
+    const getDeviceModel =
+      async (id) => {
+        try {
+          const token =
+            localStorage.getItem(
+              "accessToken"
+            );
+
+          const response =
+            await fetch(
+              `${API_URL}/device-models/${id}`,
+              {
+                method:
+                  "GET",
+                headers: {
+                  "Authorization":
+                    `Bearer ${token}`,
+                },
+              }
+            );
+
+          const result =
+            await response.json();
+
+          if (
+            result.success
+          ) {
+            return {
+              id:
+                result.data.id,
+              name:
+                result.data
+                  .model_name,
+              manufacturer:
+                result.data
+                  .model_manufacturer,
+              description:
+                result.data
+                  .model_desc,
+              status:
+                result.data
+                  .is_active
+                  ? "Active"
+                  : "Inactive",
+              createdAt:
+                result.data
+                  .created_at,
+              updatedAt:
+                result.data
+                  .updated_at,
+            };
+          }
+
+          return null;
+        } catch (error) {
+          console.error(
+            "Get Device Model Error:",
+            error
+          );
+
+          return null;
+        }
+      };
+
+    return (
+      <DeviceModelContext.Provider
+        value={{
+          deviceModels,
+          fetchDeviceModels,
+          addDeviceModel,
+          updateDeviceModel,
+          deleteDeviceModel,
+          getDeviceModel,
+          isLoading,
+        }}
+      >
+        {children}
+      </DeviceModelContext.Provider>
     );
   };
-
-  return (
-    <DeviceModelContext.Provider value={{ 
-      deviceModels, 
-      addDeviceModel, 
-      updateDeviceModel, 
-      deleteDeviceModel,
-      toggleStatus,
-      checkDuplicateName
-    }}>
-      {children}
-    </DeviceModelContext.Provider>
-  );
-};

@@ -1,18 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const SimContext = createContext();
 
 export const useSim = () => useContext(SimContext);
 
 export const SimProvider = ({ children }) => {
-  const [sims, setSims] = useState(() => {
-    const saved = localStorage.getItem('crm_sims');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('crm_sims', JSON.stringify(sims));
-  }, [sims]);
+  const [sims, setSims] = useState([]);
 
   const addSim = (simData) => {
     return new Promise((resolve, reject) => {
@@ -22,13 +15,11 @@ export const SimProvider = ({ children }) => {
         reject(new Error('This SIM Number is already assigned.'));
         return;
       }
-      
       const newSim = {
         id: Date.now().toString(),
         ...simData,
         createdAt: new Date().toISOString()
       };
-      
       setSims(prev => [newSim, ...prev]);
       resolve({ success: true, sim: newSim });
     });

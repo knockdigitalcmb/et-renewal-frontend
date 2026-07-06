@@ -1,85 +1,368 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+} from "react";
 
 const VehicleTypeContext = createContext();
 
-export const useVehicleType = () => useContext(VehicleTypeContext);
+export const useVehicleType = () =>
+  useContext(VehicleTypeContext);
 
-export const VehicleTypeProvider = ({ children }) => {
-  const [vehicleTypes, setVehicleTypes] = useState(() => {
-    const saved = localStorage.getItem('crm_vehicle_types');
-    if (saved) {
-      return JSON.parse(saved);
-    } else {
-      // Default initialization
-      return [
-        { id: 1, name: 'Car', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 2, name: 'Bike', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 3, name: 'Bus', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 4, name: 'Lorry', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 5, name: 'Van', status: 'Active', createdDate: new Date().toISOString().split('T')[0] },
-        { id: 6, name: 'Auto', status: 'Active', createdDate: new Date().toISOString().split('T')[0] }
-      ];
-    }
-  });
+const API_URL = "http://103.235.105.121:3000/api/v1";
 
-  const [isLoading, setIsLoading] = useState(false);
+export const VehicleTypeProvider = ({
+  children,
+}) => {
+  const [vehicleTypes, setVehicleTypes] =
+    useState([]);
+
+  const [isLoading, setIsLoading] =
+    useState(false);
+
+  // ======================
+  // GET ALL VEHICLE TYPES
+  // ======================
+
+  const fetchVehicleTypes =
+    async () => {
+      try {
+        setIsLoading(true);
+
+        const token =
+          localStorage.getItem(
+            "accessToken"
+          );
+        console.log("TOKEN =", token);
+        console.log("HEADER =", `Bearer ${token}`);
+
+        const response =
+          await fetch(
+            `${API_URL}/vehicle-types`,
+            {
+              method: "GET",
+              headers: {
+                "Authorization": `Bearer ${token}`,
+              },
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (result.success) {
+          const formattedData =
+            result.data.map(
+              (item) => ({
+                id: item.id,
+                name:
+                  item.vehicle_type_name,
+                description:
+                  item.vehicle_type_desc,
+                status:
+                  item.is_active
+                    ? "Active"
+                    : "Inactive",
+                createdDate:
+                  item.created_at,
+              })
+            );
+
+          setVehicleTypes(
+            formattedData
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Fetch Vehicle Types Error:",
+          error
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   useEffect(() => {
-    localStorage.setItem('crm_vehicle_types', JSON.stringify(vehicleTypes));
-  }, [vehicleTypes]);
+    fetchVehicleTypes();
+  }, []);
 
-  const addVehicleType = async (data) => {
-    setIsLoading(true);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newVehicleType = { 
-          id: Date.now(), 
-          name: data.name, 
-          status: data.status || 'Active', 
-          createdDate: new Date().toISOString().split('T')[0] 
+  // ======================
+  // CREATE VEHICLE TYPE
+  // ======================
+
+  const addVehicleType =
+    async (data) => {
+      try {
+        setIsLoading(true);
+
+        const token =
+          localStorage.getItem(
+            "accessToken"
+          );
+        console.log("TOKEN =", token);
+        console.log("TOKENvehicleTypeName =", data.name);
+        const response =
+          await fetch(
+            `${API_URL}/vehicle-types`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+                "Authorization": `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                vehicleTypeName:
+                  data.name,
+                vehicleTypeDesc:
+                  data.name,
+                isActive:
+                  data.status ===
+                  "Active",
+              }),
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (result.success) {
+          await fetchVehicleTypes();
+
+          return {
+            success: true,
+          };
+        }
+
+        return {
+          success: false,
+          message:
+            result.message,
         };
-        setVehicleTypes(prev => [newVehicleType, ...prev]);
-        setIsLoading(false);
-        resolve({ success: true });
-      }, 300);
-    });
-  };
+      } catch (error) {
+        console.error(
+          "Create Vehicle Type Error:",
+          error
+        );
 
-  const updateVehicleType = async (id, data) => {
-    setIsLoading(true);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        setVehicleTypes(prev => prev.map(vt => vt.id === parseInt(id) ? { ...vt, ...data } : vt));
+        return {
+          success: false,
+          message:
+            "Server Error",
+        };
+      } finally {
         setIsLoading(false);
-        resolve({ success: true });
-      }, 300);
-    });
-  };
+      }
+    };
 
-  const deleteVehicleType = async (id) => {
-    setIsLoading(true);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        setVehicleTypes(prev => prev.filter(vt => vt.id !== parseInt(id)));
+  // ======================
+  // UPDATE VEHICLE TYPE
+  // ======================
+
+  const updateVehicleType =
+    async (id, data) => {
+      try {
+        setIsLoading(true);
+
+        const token =
+          localStorage.getItem(
+            "accessToken"
+          );
+
+        const response =
+          await fetch(
+            `${API_URL}/vehicle-types/${id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type":
+                  "application/json",
+                "Authorization": `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                vehicleTypeName:
+                  data.name,
+                vehicleTypeDesc:
+                  data.name,
+                isActive:
+                  data.status ===
+                  "Active",
+              }),
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (result.success) {
+          await fetchVehicleTypes();
+
+          return {
+            success: true,
+          };
+        }
+
+        return {
+          success: false,
+          message:
+            result.message,
+        };
+      } catch (error) {
+        console.error(
+          "Update Vehicle Type Error:",
+          error
+        );
+
+        return {
+          success: false,
+          message:
+            "Server Error",
+        };
+      } finally {
         setIsLoading(false);
-        resolve({ success: true });
-      }, 300);
-    });
-  };
+      }
+    };
 
-  const getVehicleType = (id) => {
-    return vehicleTypes.find(vt => vt.id === parseInt(id));
+  // ======================
+  // DELETE VEHICLE TYPE
+  // ======================
+
+  const deleteVehicleType =
+    async (id) => {
+      try {
+        setIsLoading(true);
+
+        const token =
+          localStorage.getItem(
+            "accessToken"
+          );
+
+        const response =
+          await fetch(
+            `${API_URL}/vehicle-types/${id}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Authorization": `Bearer ${token}`,
+              },
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (result.success) {
+          await fetchVehicleTypes();
+
+          return {
+            success: true,
+          };
+        }
+
+        return {
+          success: false,
+          message:
+            result.message,
+        };
+      } catch (error) {
+        console.error(
+          "Delete Vehicle Type Error:",
+          error
+        );
+
+        return {
+          success: false,
+          message:
+            "Server Error",
+        };
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+  // ======================
+  // GET VEHICLE TYPE BY ID
+  // ======================
+
+  const getVehicleType =
+    async (id) => {
+      try {
+        const token =
+          localStorage.getItem(
+            "accessToken"
+          );
+
+        const response =
+          await fetch(
+            `${API_URL}/vehicle-types/${id}`,
+            {
+              method: "GET",
+              headers: {
+                "Authorization": `Bearer ${token}`,
+              },
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (result.success) {
+          return {
+            id:
+              result.data.id,
+            name:
+              result.data
+                .vehicle_type_name,
+            description:
+              result.data
+                .vehicle_type_desc,
+            status:
+              result.data
+                .is_active
+                ? "Active"
+                : "Inactive",
+            createdDate:
+              result.data
+                .created_at,
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "Get Vehicle Type Error:",
+          error
+        );
+
+        return null;
+      }
+    };
+
+  // ======================
+  // CHECK DUPLICATE VEHICLE TYPE
+  // ======================
+
+  const checkDuplicateVehicleType = (name, excludeId = null) => {
+    const lowerName = name.toLowerCase().trim();
+    return vehicleTypes.some(
+      (t) => t.name.toLowerCase().trim() === lowerName && t.id !== excludeId
+    );
   };
 
   return (
-    <VehicleTypeContext.Provider value={{ 
-      vehicleTypes, 
-      addVehicleType, 
-      updateVehicleType, 
-      deleteVehicleType, 
-      getVehicleType, 
-      isLoading 
-    }}>
+    <VehicleTypeContext.Provider
+      value={{
+        vehicleTypes,
+        fetchVehicleTypes,
+        addVehicleType,
+        updateVehicleType,
+        deleteVehicleType,
+        getVehicleType,
+        checkDuplicateVehicleType,
+        isLoading,
+      }}
+    >
       {children}
     </VehicleTypeContext.Provider>
   );
