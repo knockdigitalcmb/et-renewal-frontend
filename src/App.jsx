@@ -30,6 +30,7 @@ import { ProfileProvider } from './context/ProfileContext';
 import { DeviceModelProvider } from './context/DeviceModelContext';
 import { SimProvider } from './context/SimContext';
 import { ImeiProvider } from './context/ImeiContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 function AppLayout() {
   return (
@@ -59,9 +60,11 @@ function App() {
                         <DeviceModelProvider>
                           <ImeiProvider>
                             <SimProvider>
-                              <ProtectedRoute>
-                                <AppLayout />
-                              </ProtectedRoute>
+                              <NotificationProvider>
+                                  <ProtectedRoute>
+                                    <AppLayout />
+                                  </ProtectedRoute>
+                              <NotificationProvider>
                             </SimProvider>
                           </ImeiProvider>
                         </DeviceModelProvider>
