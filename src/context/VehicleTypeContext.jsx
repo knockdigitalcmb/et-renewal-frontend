@@ -34,8 +34,8 @@ export const VehicleTypeProvider = ({
           localStorage.getItem(
             "accessToken"
           );
-        console.log("TOKEN =", token);
-        console.log("HEADER =", `Bearer ${token}`);
+        // console.log("TOKEN =", token);
+        // console.log("HEADER =", `Bearer ${token}`);
 
         const response =
           await fetch(
@@ -100,8 +100,8 @@ export const VehicleTypeProvider = ({
           localStorage.getItem(
             "accessToken"
           );
-        console.log("TOKEN =", token);
-        console.log("TOKENvehicleTypeName =", data.name);
+        // console.log("TOKEN =", token);
+        // console.log("TOKENvehicleTypeName =", data.name);
         const response =
           await fetch(
             `${API_URL}/vehicle-types`,
