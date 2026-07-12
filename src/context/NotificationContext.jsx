@@ -223,7 +223,7 @@ export const NotificationProvider = ({ children }) => {
           filter: `user_id=eq.${userId}`, // Filter to only receive this user's notifications
         },
         (payload) => {
-          console.log('New notification received via Supabase:', payload.new);
+          // console.log('New notification received via Supabase:', payload.new);
           const newNotification = formatNotification(payload.new);
           // 3. Add to state
           setNotifications(prev => [newNotification, ...prev]);
@@ -242,16 +242,16 @@ export const NotificationProvider = ({ children }) => {
   const markAsRead = async (id) => {
     if (!userId) return;
 
-    console.log(id, "id");
+    // console.log(id, "id");
     // 1. Update in Supabase
     const { data, error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('id', id)
       .select('*');
-    console.log(data, "data");
+    // console.log(data, "data");
     if (error) {
-      console.error('Error marking notification as read:', error);
+      // console.error('Error marking notification as read:', error);
       return;
     }
 
@@ -274,7 +274,7 @@ export const NotificationProvider = ({ children }) => {
       .eq('is_read', false);
 
     if (error) {
-      console.error('Error marking all as read:', error);
+      // console.error('Error marking all as read:', error);
       return;
     }
 

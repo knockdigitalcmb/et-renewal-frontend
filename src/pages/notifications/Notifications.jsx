@@ -9,7 +9,7 @@ const Notifications = () => {
 
   const handleNotificationClick = (notificationData) => {
     markAsRead(notificationData.id);
-    console.log(notificationData.link);
+    // console.log(notificationData.link);
     if (notificationData.link) {
       if (notificationData.link_description === 'customer import') {
         window.open(notificationData.link, '_blank');
