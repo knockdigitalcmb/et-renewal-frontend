@@ -59,13 +59,13 @@ function App() {
                       <VehicleTypeProvider>
                         <DeviceModelProvider>
                           <ImeiProvider>
-                            <SimProvider>
-                              <NotificationProvider>
-                                  <ProtectedRoute>
-                                    <AppLayout />
-                                  </ProtectedRoute>
-                              <NotificationProvider>
-                            </SimProvider>
+                            <NotificationProvider>
+                              <SimProvider>
+                                <ProtectedRoute>
+                                  <AppLayout />
+                                </ProtectedRoute>
+                              </SimProvider>
+                            </NotificationProvider>
                           </ImeiProvider>
                         </DeviceModelProvider>
                       </VehicleTypeProvider>

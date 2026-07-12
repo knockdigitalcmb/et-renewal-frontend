@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { FiTool, FiAlertCircle, FiUserPlus, FiDollarSign, FiCheckCircle } from 'react-icons/fi';
+import { supabase } from '../services/supabase';
 
 const NotificationContext = createContext();
 
@@ -87,21 +88,199 @@ const initialNotifications = [
 ];
 
 export const NotificationProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const userId = useMemo(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const parsed = JSON.parse(userStr);
+        return parsed.id || parsed.user_id;
+      } catch (e) {
+        console.error('Error parsing user from localStorage', e);
+      }
+    }
+    return null;
+  }, []);
 
-  const markAsRead = (id) => {
+  // Helper function to format database notification to frontend format
+  const formatNotification = (dbNotification) => {
+    let icon = <FiCheckCircle className="w-5 h-5 text-teal-500" />;
+    let bg = 'bg-teal-100 dark:bg-teal-900/30';
+    let link = "";
+
+    if (dbNotification.type === 'install') {
+      icon = <FiTool className="w-5 h-5 text-blue-500" />;
+      bg = 'bg-blue-100 dark:bg-blue-900/30';
+    } else if (dbNotification.type === 'renewal') {
+      icon = <FiAlertCircle className="w-5 h-5 text-yellow-500" />;
+      bg = 'bg-yellow-100 dark:bg-yellow-900/30';
+    } else if (dbNotification.type === 'customer') {
+      icon = <FiUserPlus className="w-5 h-5 text-green-500" />;
+      bg = 'bg-green-100 dark:bg-green-900/30';
+    } else if (dbNotification.type === 'payment') {
+      icon = <FiDollarSign className="w-5 h-5 text-purple-500" />;
+      bg = 'bg-purple-100 dark:bg-purple-900/30';
+    }
+
+    if (dbNotification.link_description === 'customer') {
+      link = '/customers';
+    } else if (dbNotification.link_description === 'customer import') {
+      link = "http://103.235.105.121:3000/uploads/errors/" + dbNotification.link;
+    }
+
+    const timeStr = dbNotification.created_at
+      ? new Date(dbNotification.created_at).toLocaleString()
+      : 'Just now';
+
+    return {
+      id: dbNotification.id || Date.now(),
+      type: dbNotification.type || 'system',
+      title: dbNotification.title || 'Notification',
+      message: dbNotification.message || '',
+      time: timeStr,
+      is_read: dbNotification.is_read,
+      icon,
+      bg,
+      link: link,
+      link_description: dbNotification.link_description
+    };
+  };
+
+  const loadMoreNotifications = async () => {
+    if (!userId || !hasMore) return;
+
+    try {
+      const from = notifications.length;
+      const to = from + 29; // Fetch next 30
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      if (data) {
+        if (data.length < 30) {
+          setHasMore(false);
+        }
+        const formatted = data.map(formatNotification);
+        setNotifications(prev => [...prev, ...formatted]);
+      }
+    } catch (err) {
+      console.error('Error fetching more notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!userId) {
+      console.warn('No user_id found in localStorage. Real-time notifications subscription skipped.');
+      return;
+    }
+
+    // 1. Fetch existing notifications from the database
+    const fetchInitialNotifications = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .range(0, 29); // Fetch first 30
+
+        if (error) {
+          console.error('Error fetching initial notifications:', error);
+          return;
+        }
+
+        if (data) {
+          if (data.length < 30) {
+            setHasMore(false);
+          }
+          const formatted = data.map(formatNotification);
+          setNotifications(formatted);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching notifications:', err);
+      }
+    };
+
+    fetchInitialNotifications();
+
+    // 2. Subscribe to Supabase real-time changes for new notifications
+    const channel = supabase
+      .channel('realtime-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`, // Filter to only receive this user's notifications
+        },
+        (payload) => {
+          console.log('New notification received via Supabase:', payload.new);
+          const newNotification = formatNotification(payload.new);
+          // 3. Add to state
+          setNotifications(prev => [newNotification, ...prev]);
+        }
+      )
+      .subscribe();
+
+    // 4. Cleanup subscription on component unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const markAsRead = async (id) => {
+    if (!userId) return;
+
+    console.log(id, "id");
+    // 1. Update in Supabase
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id)
+      .select('*');
+    console.log(data, "data");
+    if (error) {
+      console.error('Error marking notification as read:', error);
+      return;
+    }
+
+    // 2. Update local React state
     setNotifications(prev =>
       prev.map(notification =>
-        notification.id === id ? { ...notification, unread: false } : notification
+        notification.id === id ? { ...notification, is_read: true } : notification
       )
     );
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
+    if (!userId) return;
+
+    // 1. Bulk update in Supabase
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error marking all as read:', error);
+      return;
+    }
+
+    // 2. Update local React state
     setNotifications(prev =>
-      prev.map(notification => ({ ...notification, unread: false }))
+      prev.map(notification => ({ ...notification, is_read: true }))
     );
   };
 
@@ -122,9 +301,11 @@ export const NotificationProvider = ({ children }) => {
       value={{
         notifications,
         unreadCount,
+        hasMore,
         markAsRead,
         markAllAsRead,
-        addNotification
+        addNotification,
+        loadMoreNotifications
       }}
     >
       {children}
