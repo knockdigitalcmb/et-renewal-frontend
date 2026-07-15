@@ -6,6 +6,8 @@ export const useCustomer = () => useContext(CustomerContext);
 
 export const CustomerProvider = ({ children }) => {
   const [customers, setCustomers] = useState([]);
+  const [platform, setPlatform] = useState([]);
+  const [paymentMode, setPaymentMode] = useState([]);
   const [renewals, setRenewals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -80,9 +82,63 @@ export const CustomerProvider = ({ children }) => {
     }
   }, []);
 
+  const fetchPlatform = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch('http://103.235.105.121:3000/api/v1/platforms', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const platformList = Array.isArray(result.data) ? result.data : [];
+        const mappedPlatform = platformList.map(c => ({
+          id: c.id,
+          platformName: c.platform_name || '-'
+        }));
+        setPlatform(mappedPlatform);
+      }
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchPaymentMode = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch('http://103.235.105.121:3000/api/v1/payment-modes', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const paymentModeList = Array.isArray(result.data) ? result.data : [];
+        const mappedPaymentMode = paymentModeList.map(c => ({
+          id: c.id,
+          paymentMode: c.payment_mode_name || '-'
+        }));
+        setPaymentMode(mappedPaymentMode);
+      }
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCustomers();
-  }, [fetchCustomers]);
+    fetchPlatform();
+    fetchPaymentMode();
+  }, [fetchCustomers, fetchPlatform, fetchPaymentMode]);
 
   const getCustomerById = useCallback(async (id) => {
     try {
@@ -154,56 +210,101 @@ export const CustomerProvider = ({ children }) => {
   };
 
   const addCustomer = async (data) => {
-    setIsLoading(true);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newCustomer = {
-          ...data,
-          id: Date.now().toString(),
-          name: data.UserName || data.customerName || 'New Customer',
-          mobile: data.mobileNumber || '0000000000',
-          altMobile1: data.altMobile1 || '',
-          altMobile2: data.altMobile2 || '',
-          altMobile3: data.altMobile3 || '',
-          email: data.email || '',
-          location: data.location || '-',
-          platform: data.platform || '',
-          leadClosureBy: data.leadClosureBy || '-',
-          totalVehicles: data.vehicles ? data.vehicles.length : 1,
-          pendingAmount: data.pendingAmount > 0 ? data.pendingAmount : 0,
-          isPaid: data.pendingAmount <= 0,
-          renewalDate: data.expiryDate || '-',
-          installDate: data.installationDate || data.installDate || '-',
-          vehicleNo: data.vehicles && data.vehicles.length > 0 ? (data.vehicles[0].vehicleNumber || data.vehicles[0].vehicleNo || '-') : '-',
-          vehicles: data.vehicles && data.vehicles.length > 0 ? data.vehicles.map((v, index) => ({
-            id: Date.now().toString() + `-v${index + 1}`,
-            vehicleNo: v.vehicleNumber || v.vehicleNo || '-',
-            vehicleType: v.vehicleType || '',
-            platform: v.platform || '',
-            imei: v.imeiNumber || v.imei || '',
-            simNumber: v.simNumber || '',
-            deviceModel: v.deviceModel || '',
-            deviceCharge: data.deviceCharge || 0,
-            simCharge: data.simCharge || 0,
-            softwareCharge: data.softwareCharge || 0,
-            technicianCharge: data.technicianCharge || 0,
-            courierCharge: data.courierCharge || 0,
-            totalAmount: data.totalAmount || 0,
-            amountPaid: data.amountPaid || 0,
-            pendingAmount: data.pendingAmount > 0 ? data.pendingAmount : 0,
-            paymentMode: data.paymentMode || '',
-            installPerson: data.installationPerson || data.installPerson || '',
-            leadClosureBy: data.leadClosureBy || '-',
-            installDate: data.installationDate || data.installDate || '-',
-            validity: data.validity || '12',
-            expiryDate: data.expiryDate || '-'
-          })) : []
+    try {
+      setIsLoading(true);
+
+      const token = localStorage.getItem("accessToken");
+
+      console.log('data', data);
+
+      const financial_devices = {
+        "payment_mode": data.paymentMode,
+        "transaction_id": data.transactionRefNo,
+        "paid_date": data.installationDate,
+        "total_sale_amount": data.totalSaleAmount,
+        "device_amount": data.deviceCharge,
+        "sim_amount": data.simCharge,
+        "software_amount": data.softwareCharge,
+        "technician_amount": data.technicianCharge,
+        "courier_amount": data.courierCharge,
+        "total_amount": data.totalAmount,
+        "amount_paid": data.amountPaid,
+        "pending_amount": data.pendingAmount
+      };
+
+      const devices = [];
+      if (data.vehicles && data.vehicles.length > 0) {
+        for (let i = 0; i < data.vehicles.length; i++) {
+          const v = data.vehicles[i];
+          devices.push({
+            "vehicle_number": v.vehicleNumber,
+            "platform": v.platform,
+            "vehicle_type": v.vehicleType,
+            "imei_number": v.imeiNumber,
+            "sim_number": v.simNumber,
+            "device_model": v.deviceModel
+          });
+        }
+      }
+
+      const installation_devices = {
+        "installation_person": data.installationPerson,
+        "lead_closure": data.leadClosureBy,
+        "installation_date": data.installationDate,
+        "validity": data.validity,
+        "expiry_date": data.expiryDate,
+      };
+      const response =
+        await fetch(
+          `http://103.235.105.121:3000/api/v1/customers`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body:
+              JSON.stringify({
+                name: data.UserName || data.customerName || 'New Customer',
+                phoneNumber: data.mobileNumber,
+                phoneNumber1: data.altMobile1 || null,
+                phoneNumber2: data.altMobile2 || null,
+                phoneNumber3: data.altMobile3 || null,
+                email: data.email || "",
+                location: data.location || null,
+                notes: data.notes || "",
+                devices: devices,
+                financial_devices: financial_devices,
+                installation_devices: installation_devices,
+              }),
+          }
+        );
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchCustomers();
+
+        return {
+          success: true,
         };
-        setCustomers(prev => [newCustomer, ...prev]);
-        setIsLoading(false);
-        resolve({ success: true, id: newCustomer.id });
-      }, 500);
-    });
+      }
+
+      return {
+        success: false,
+        message: result.message,
+      };
+    } catch (error) {
+      console.error("Create Customer Error:", error);
+
+      return {
+        success: false,
+        message: "New Customer not created", error
+      };
+    } finally {
+      setIsLoading(false);
+    }
+
   };
 
   const updateCustomer = async (id, data) => {
@@ -346,6 +447,8 @@ export const CustomerProvider = ({ children }) => {
   return (
     <CustomerContext.Provider value={{
       customers,
+      platform,
+      paymentMode,
       renewals,
       addCustomer,
       updateCustomer,
