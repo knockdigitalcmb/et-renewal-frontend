@@ -18,23 +18,29 @@ import {
 const AddCustomer = () => {
   const navigate = useNavigate();
   const { showModal } = useModal();
-  const { addCustomer, addVehicle, updateCustomer, customers, checkDuplicateVehicle } = useCustomer();
-  const { resources } = useResource();
+  const { addCustomer, addVehicle, updateCustomer, customers, checkDuplicateVehicle, platform, paymentMode } = useCustomer();
+  const { users, fetchUsers } = useResource();
   const { vehicleTypes } = useVehicleType();
   const { deviceModels } = useDeviceModel();
   const { imeis } = useImei();
   const { sims } = useSim();
 
   const activeDeviceModels = deviceModels.filter(m => m.status === 'Active');
-  const activeResources = resources.filter(r => r.status === 'Active');
+  const activeResources = users || [];
+  const activePlatform = platform || [];
+  const activePaymentMode = paymentMode || [];
   const activeVehicleTypes = vehicleTypes.filter(vt => vt.status === 'Active');
   const activeImeis = imeis.filter(i => i.status === 'Active' || i.status === 'Available' || !i.status);
   const activeSims = sims.filter(s => s.status === 'Active' || s.status === 'Available' || !s.status);
-  
+
   const [notesLength, setNotesLength] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedExistingCustomer, setSelectedExistingCustomer] = useState(null);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -103,7 +109,7 @@ const AddCustomer = () => {
     setValue('altMobile2', c.altMobile2 || '', { shouldValidate: true });
     setValue('altMobile3', c.altMobile3 || '', { shouldValidate: true });
     setValue('email', c.email || '', { shouldValidate: true });
-    setValue('location', c.location || '', { shouldValidate: true });
+    setValue('location', c.location || '', { shouldValidate: false });
     setShowDropdown(false);
   };
 
@@ -112,7 +118,7 @@ const AddCustomer = () => {
     const parsed = parseFloat(val);
     return isNaN(parsed) ? 0 : parsed;
   };
-  
+
   const totalAmount = parseNum(deviceCharge) + parseNum(simCharge) + parseNum(softwareCharge) + parseNum(technicianCharge) + parseNum(courierCharge);
   const pendingAmount = parseNum(totalSaleAmount) === totalAmount ? totalAmount - parseNum(amountPaid) : 0;
 
@@ -137,7 +143,7 @@ const AddCustomer = () => {
         if (validity === '27 months') date.setMonth(date.getMonth() + 27);
         if (validity === '48 months') date.setMonth(date.getMonth() + 48);
         if (validity === '60 months') date.setMonth(date.getMonth() + 60);
-        
+
         // Format to dd-mm-yyyy or yyyy-mm-dd for input type="date"
         const formattedDate = date.toISOString().split('T')[0];
         setValue('expiryDate', formattedDate);
@@ -154,77 +160,77 @@ const AddCustomer = () => {
     const vehicles = trimmedData.vehicles || [];
 
     // Duplicate check for all vehicle numbers in the form
-    for (const v of vehicles) {
-      if (checkDuplicateVehicle('vehicleNo', v.vehicleNumber)) {
-        showModal({ type: 'error', title: 'Duplicate Found', message: `Vehicle Number "${v.vehicleNumber}" is already registered.` });
-        return;
-      }
-    }
+    // for (const v of vehicles) {
+    //   if (checkDuplicateVehicle('vehicleNo', v.vehicleNumber)) {
+    //     showModal({ type: 'error', title: 'Duplicate Found', message: `Vehicle Number "${v.vehicleNumber}" is already registered.` });
+    //     return;
+    //   }
+    // }
 
     if (parseNum(trimmedData.totalSaleAmount) !== totalAmount) {
       showModal({ type: 'error', title: 'Validation Error', message: "Total Sale Amount must match Total Amount" });
       return;
     }
 
-    if (!selectedExistingCustomer) {
-      const exactMatch = customers.find(c =>
-        c.name.toLowerCase() === trimmedData.UserName.toLowerCase() &&
-        c.vehicles?.some(v => vehicles.some(fv => fv.platform === v.platform))
-      );
-      if (exactMatch) {
-        showModal({ type: 'error', title: 'Duplicate Customer', message: 'Existing customer found on this platform. Select from dropdown to add vehicle.' });
-        return;
-      }
-    }
+    // if (!selectedExistingCustomer) {
+    //   const exactMatch = customers.find(c =>
+    //     c.name.toLowerCase() === trimmedData.UserName.toLowerCase() &&
+    //     c.vehicles?.some(v => vehicles.some(fv => fv.platform === v.platform))
+    //   );
+    //   if (exactMatch) {
+    //     showModal({ type: 'error', title: 'Duplicate Customer', message: 'Existing customer found on this platform. Select from dropdown to add vehicle.' });
+    //     return;
+    //   }
+    // }
 
     const finalData = { ...trimmedData, totalAmount, pendingAmount };
 
-    if (selectedExistingCustomer) {
-      await updateCustomer(selectedExistingCustomer.id, {
-        altMobile1: trimmedData.altMobile1 || '',
-        altMobile2: trimmedData.altMobile2 || '',
-        altMobile3: trimmedData.altMobile3 || '',
-      });
-      const sharedFinancial = {
-        deviceCharge: trimmedData.deviceCharge || 0,
-        simCharge: trimmedData.simCharge || 0,
-        softwareCharge: trimmedData.softwareCharge || 0,
-        technicianCharge: trimmedData.technicianCharge || 0,
-        courierCharge: trimmedData.courierCharge || 0,
-        totalSaleAmount: parseNum(trimmedData.totalSaleAmount) || 0,
-        totalAmount: totalAmount || 0,
-        transactionRefNo: trimmedData.transactionRefNo || '',
-        amountPaid: trimmedData.amountPaid || 0,
-        pendingAmount: pendingAmount > 0 ? pendingAmount : 0,
-        paymentMode: trimmedData.paymentMode || '',
-        installPerson: trimmedData.installationPerson || '',
-        leadClosureBy: trimmedData.leadClosureBy || '-',
-        installDate: trimmedData.installationDate || '-',
-        validity: trimmedData.validity || '12',
-        expiryDate: trimmedData.expiryDate || '-'
-      };
-      for (const v of vehicles) {
-        await addVehicle(selectedExistingCustomer.id, {
-          vehicleNo: v.vehicleNumber || '-',
-          platform: v.platform || '',
-          vehicleType: v.vehicleType || '',
-          imei: v.imeiNumber || '',
-          simNumber: v.simNumber || '',
-          deviceModel: v.deviceModel || '',
-          ...sharedFinancial
-        });
-      }
-      showModal({
-        type: 'success', title: 'Success',
-        message: `${vehicles.length} vehicle(s) added to existing customer!`,
-        buttons: [
-          { text: 'View Customer', style: 'primary', onClick: () => navigate(`/customers/edit/${selectedExistingCustomer.id}`) },
-          { text: 'Add Another', onClick: () => handleReset() },
-          { text: 'Close', style: 'secondary' }
-        ]
-      });
-      return;
-    }
+    // if (selectedExistingCustomer) {
+    //   await updateCustomer(selectedExistingCustomer.id, {
+    //     altMobile1: trimmedData.altMobile1 || '',
+    //     altMobile2: trimmedData.altMobile2 || '',
+    //     altMobile3: trimmedData.altMobile3 || '',
+    //   });
+    //   const sharedFinancial = {
+    //     deviceCharge: trimmedData.deviceCharge || 0,
+    //     simCharge: trimmedData.simCharge || 0,
+    //     softwareCharge: trimmedData.softwareCharge || 0,
+    //     technicianCharge: trimmedData.technicianCharge || 0,
+    //     courierCharge: trimmedData.courierCharge || 0,
+    //     totalSaleAmount: parseNum(trimmedData.totalSaleAmount) || 0,
+    //     totalAmount: totalAmount || 0,
+    //     transactionRefNo: trimmedData.transactionRefNo || '',
+    //     amountPaid: trimmedData.amountPaid || 0,
+    //     pendingAmount: pendingAmount > 0 ? pendingAmount : 0,
+    //     paymentMode: trimmedData.paymentMode || '',
+    //     installPerson: trimmedData.installationPerson || '',
+    //     leadClosureBy: trimmedData.leadClosureBy || '-',
+    //     installDate: trimmedData.installationDate || '-',
+    //     validity: trimmedData.validity || '12',
+    //     expiryDate: trimmedData.expiryDate || '-'
+    //   };
+    //   for (const v of vehicles) {
+    //     await addVehicle(selectedExistingCustomer.id, {
+    //       vehicleNo: v.vehicleNumber || '-',
+    //       platform: v.platform || '',
+    //       vehicleType: v.vehicleType || '',
+    //       imei: v.imeiNumber || '',
+    //       simNumber: v.simNumber || '',
+    //       deviceModel: v.deviceModel || '',
+    //       ...sharedFinancial
+    //     });
+    //   }
+    //   showModal({
+    //     type: 'success', title: 'Success',
+    //     message: `${vehicles.length} vehicle(s) added to existing customer!`,
+    //     buttons: [
+    //       { text: 'View Customer', style: 'primary', onClick: () => navigate(`/customers/edit/${selectedExistingCustomer.id}`) },
+    //       { text: 'Add Another', onClick: () => handleReset() },
+    //       { text: 'Close', style: 'secondary' }
+    //     ]
+    //   });
+    //   return;
+    // }
 
     const res = await addCustomer(finalData);
     if (res.success) {
@@ -235,6 +241,15 @@ const AddCustomer = () => {
           { text: 'View Customers', style: 'primary', onClick: () => navigate('/customers') },
           { text: 'Add Another', onClick: () => handleReset() },
           { text: 'Close', style: 'secondary' }
+        ]
+      });
+    } else {
+      showModal({
+        type: 'error',
+        title: 'Error',
+        message: res.message || 'Failed to add customer',
+        buttons: [
+          { text: 'Close' }
         ]
       });
     }
@@ -274,11 +289,11 @@ const AddCustomer = () => {
 
   return (
     <div className="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 flex flex-col p-4 sm:p-8 transition-colors duration-200">
-      
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6 max-w-[1400px] mx-auto w-full bg-white dark:bg-gray-800 p-6 rounded-md shadow-sm transition-colors duration-200">
         <h2 className="text-lg font-bold text-gray-800 dark:text-white">Add New Customer / Vehicle</h2>
-        <button 
+        <button
           onClick={() => navigate('/customers')}
           className="bg-[#3498db] hover:bg-[#2980b9] text-white px-5 py-2 rounded font-medium text-sm transition-colors shadow-sm"
         >
@@ -289,7 +304,7 @@ const AddCustomer = () => {
       {/* Main Form Wrapper */}
       <div className="max-w-[1400px] mx-auto w-full space-y-6">
         <form onSubmit={handleSubmit(onSubmit, onError)}>
-          
+
           {/* Section 1: Owner Details */}
           <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-6 sm:p-8 border border-gray-100 dark:border-gray-700 transition-colors duration-200 mb-6 relative" ref={dropdownRef}>
             <div className="flex items-center mb-6 pb-3 border-b border-gray-100 dark:border-gray-700">
@@ -298,28 +313,28 @@ const AddCustomer = () => {
                 {selectedExistingCustomer ? <span className="text-[#3498db]">Owner Details (Existing Customer Selected)</span> : 'Owner Details'}
               </h3>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="relative">
                 <InputLabel label="Customer Name" required />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   autoComplete="off"
-                  {...register('UserName', { 
+                  {...register('UserName', {
                     required: 'Customer Name is required',
                     minLength: { value: 3, message: 'Minimum 3 characters required' },
                     pattern: { value: regexPatterns.UserName, message: 'Only alphabets, numbers, space and dot allowed' }
                   })}
                   onKeyDown={restrictName}
                   onPaste={pasteName}
-                  className={getInputClass('UserName')} 
+                  className={getInputClass('UserName')}
                 />
                 {/* Auto Search Dropdown */}
                 {showDropdown && searchResults.length > 0 && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
                     {searchResults.map(c => (
-                      <div 
-                        key={c.id} 
+                      <div
+                        key={c.id}
                         onClick={() => handleSelectCustomer(c)}
                         className="px-4 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-50 last:border-0"
                       >
@@ -333,9 +348,9 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Primary Mobile" required />
-                <NumericInput  
+                <NumericInput
                   readOnly={!!selectedExistingCustomer}
-                  {...register('mobileNumber', { 
+                  {...register('mobileNumber', {
                     required: 'Mobile is required',
                     pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' }
                   })}
@@ -345,8 +360,8 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Email" />
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   readOnly={!!selectedExistingCustomer}
                   {...register('email', {
                     pattern: { value: /^\S+@\S+\.\S+$/i, message: 'Invalid email format' }
@@ -357,12 +372,12 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Location" required />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   readOnly={!!selectedExistingCustomer}
-                  {...register('location', { 
+                  {...register('location', {
                     required: 'Location is required',
-                    pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
+                    pattern: { value: location, message: 'Only alphabets and spaces allowed' }
                   })}
                   onKeyDown={restrictAlphabetsSpaces}
                   onPaste={pasteAlphabetsSpaces}
@@ -371,12 +386,12 @@ const AddCustomer = () => {
                 <ErrorMsg error={errors.location} />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
               <div>
                 <InputLabel label="Alternate Mobile 1" />
-                <NumericInput  
-                  {...register('altMobile1', { 
+                <NumericInput
+                  {...register('altMobile1', {
                     pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
                     validate: (value) => !value || value !== watch('mobileNumber') || 'Cannot match Primary Mobile'
                   })}
@@ -388,8 +403,8 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Alternate Mobile 2" />
-                <NumericInput  
-                  {...register('altMobile2', { 
+                <NumericInput
+                  {...register('altMobile2', {
                     pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
                     validate: (value) => {
                       if (!value) return true;
@@ -406,8 +421,8 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Alternate Mobile 3" />
-                <NumericInput  
-                  {...register('altMobile3', { 
+                <NumericInput
+                  {...register('altMobile3', {
                     pattern: { value: regexPatterns.mobile, message: 'Must be exactly 10 digits' },
                     validate: (value) => {
                       if (!value) return true;
@@ -465,9 +480,8 @@ const AddCustomer = () => {
                           const val = e.target.value.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
                           setValue(`vehicles.${index}.vehicleNumber`, val, { shouldValidate: true, shouldDirty: true });
                         }}
-                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
-                          errors.vehicles?.[index]?.vehicleNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${errors.vehicles?.[index]?.vehicleNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                          }`}
                       />
                       {errors.vehicles?.[index]?.vehicleNumber && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].vehicleNumber.message}</p>}
                     </div>
@@ -475,17 +489,16 @@ const AddCustomer = () => {
                       <InputLabel label="Platform" required />
                       <select
                         {...register(`vehicles.${index}.platform`, { required: 'Platform is required' })}
-                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
-                          errors.vehicles?.[index]?.platform ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${errors.vehicles?.[index]?.platform ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                          }`}
                       >
                         <option value="">Select Platform</option>
-                        <option value="Tracco">Tracco</option>
-                        <option value="EagleIndia">EagleIndia</option>
-                        <option value="Trackin">Trackin</option>
-                        <option value="GPS Monitor">GPS Monitor</option>
-                        <option value="OneQlik">OneQlik</option>
-                        <option value="Navi lap">Navi lap</option>
+                        {activePlatform.map(pv => (
+                          <option key={pv.id} value={pv.id}>
+                            {pv.platformName}
+                          </option>
+                        ))}
+
                       </select>
                       {errors.vehicles?.[index]?.platform && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].platform.message}</p>}
                     </div>
@@ -493,13 +506,12 @@ const AddCustomer = () => {
                       <InputLabel label="Vehicle Type" required />
                       <select
                         {...register(`vehicles.${index}.vehicleType`, { required: 'Vehicle Type is required' })}
-                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
-                          errors.vehicles?.[index]?.vehicleType ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${errors.vehicles?.[index]?.vehicleType ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                          }`}
                       >
                         <option value="">Select Type</option>
                         {activeVehicleTypes.map(vt => (
-                          <option key={vt.id} value={vt.name}>{vt.name}</option>
+                          <option key={vt.id} value={vt.id}>{vt.name}</option>
                         ))}
                       </select>
                       {errors.vehicles?.[index]?.vehicleType && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].vehicleType.message}</p>}
@@ -516,9 +528,8 @@ const AddCustomer = () => {
                         })}
                         onKeyDown={restrictNumbers}
                         onPaste={pasteNumbers}
-                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
-                          errors.vehicles?.[index]?.imeiNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${errors.vehicles?.[index]?.imeiNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                          }`}
                       />
                       {errors.vehicles?.[index]?.imeiNumber && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].imeiNumber.message}</p>}
                     </div>
@@ -534,9 +545,8 @@ const AddCustomer = () => {
                         })}
                         onKeyDown={restrictNumbers}
                         onPaste={pasteNumbers}
-                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
-                          errors.vehicles?.[index]?.simNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${errors.vehicles?.[index]?.simNumber ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                          }`}
                       />
                       {errors.vehicles?.[index]?.simNumber && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].simNumber.message}</p>}
                     </div>
@@ -544,13 +554,12 @@ const AddCustomer = () => {
                       <InputLabel label="Device Model" required />
                       <select
                         {...register(`vehicles.${index}.deviceModel`, { required: 'Device Model is required' })}
-                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${
-                          errors.vehicles?.[index]?.deviceModel ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 text-sm transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 ${errors.vehicles?.[index]?.deviceModel ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:ring-blue-500'
+                          }`}
                       >
                         <option value="">Select Model</option>
                         {activeDeviceModels.map(dm => (
-                          <option key={dm.id} value={dm.name}>{dm.name}</option>
+                          <option key={dm.id} value={dm.id}>{dm.name}</option>
                         ))}
                       </select>
                       {errors.vehicles?.[index]?.deviceModel && <p className="text-red-500 text-xs mt-1">{errors.vehicles[index].deviceModel.message}</p>}
@@ -578,7 +587,7 @@ const AddCustomer = () => {
                 <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center font-bold mr-3">3</div>
                 <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">Financial Details</h3>
               </div>
-              
+
               {/* Payment Status Badge */}
               {/* {pendingAmount <= 0 ? (
                 <div className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-4 py-1.5 rounded-full font-bold flex items-center shadow-sm">
@@ -592,16 +601,22 @@ const AddCustomer = () => {
                 </div>
               )} */}
             </div>
-            
+
             {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div>
                 <InputLabel label="Payment Mode" required />
-                <select 
+                <select
                   {...register('paymentMode', { required: 'Payment Mode is required' })}
                   className={getInputClass('paymentMode')}
                 >
-                  <option value="">Select Mode</option>
+                  <option value="">Select Payment Mode</option>
+                  {activePaymentMode.map(resource => (
+                    <option key={resource.id} value={resource.id}>
+                      {resource.paymentMode}
+                    </option>
+                  ))}
+                  {/* <option value="">Select Mode</option>
                   <option value="ET Gpay">ET Gpay</option>
                   <option value="ET Phonepe">ET Phonepe</option>
                   <option value="ET Paytm">ET Paytm</option>
@@ -616,16 +631,16 @@ const AddCustomer = () => {
                   <option value="WATI PhonePe">WATI PhonePe</option>
                   <option value="WATI Account">WATI Account</option>
                   <option value="Cash">Cash</option>
-                  <option value="CC Payment Gateway">CC Payment Gateway</option>
+                  <option value="CC Payment Gateway">CC Payment Gateway</option> */}
                 </select>
                 <ErrorMsg error={errors.paymentMode} />
               </div>
               <div>
                 <InputLabel label="Transaction Ref No (Last 6 Digits)" required />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   maxLength={6}
-                  {...register('transactionRefNo', { 
+                  {...register('transactionRefNo', {
                     required: 'Transaction Ref No is required',
                     pattern: { value: /^\d{6}$/, message: 'Please enter exactly 6 digits.' }
                   })}
@@ -638,23 +653,23 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Total Sale Amount (₹)" required />
-                <NumericInput {...register('totalSaleAmount', { 
-                    required: 'Total Sale Amount is required',
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
+                <NumericInput {...register('totalSaleAmount', {
+                  required: 'Total Sale Amount is required',
+                  min: { value: 0, message: 'Cannot be negative' }
+                })}
                   className={getInputClass('totalSaleAmount')}
-                  defaultToZero 
+                  defaultToZero
                 />
                 <ErrorMsg error={errors.totalSaleAmount} />
               </div>
               <div>
                 <InputLabel label="Device Amount (₹)" required />
-                <NumericInput {...register('deviceCharge', { 
-                    required: 'Device Amount is required',
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
+                <NumericInput {...register('deviceCharge', {
+                  required: 'Device Amount is required',
+                  min: { value: 0, message: 'Cannot be negative' }
+                })}
                   className={getInputClass('deviceCharge')}
-                  defaultToZero 
+                  defaultToZero
                 />
                 <ErrorMsg error={errors.deviceCharge} />
               </div>
@@ -664,42 +679,42 @@ const AddCustomer = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div>
                 <InputLabel label="SIM Amount (₹)" required />
-                <NumericInput {...register('simCharge', { 
-                    required: 'SIM Amount is required',
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
+                <NumericInput {...register('simCharge', {
+                  required: 'SIM Amount is required',
+                  min: { value: 0, message: 'Cannot be negative' }
+                })}
                   className={getInputClass('simCharge')}
-                  defaultToZero 
+                  defaultToZero
                 />
                 <ErrorMsg error={errors.simCharge} />
               </div>
               <div>
                 <InputLabel label="Software Amount (₹)" />
-                <NumericInput {...register('softwareCharge', { 
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
+                <NumericInput {...register('softwareCharge', {
+                  min: { value: 0, message: 'Cannot be negative' }
+                })}
                   className={getInputClass('softwareCharge')}
-                  defaultToZero 
+                  defaultToZero
                 />
                 <ErrorMsg error={errors.softwareCharge} />
               </div>
               <div>
                 <InputLabel label="Technician Amount (₹)" />
-                <NumericInput {...register('technicianCharge', { 
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
+                <NumericInput {...register('technicianCharge', {
+                  min: { value: 0, message: 'Cannot be negative' }
+                })}
                   className={getInputClass('technicianCharge')}
-                  defaultToZero 
+                  defaultToZero
                 />
                 <ErrorMsg error={errors.technicianCharge} />
               </div>
               <div>
                 <InputLabel label="Courier Amount (₹)" />
-                <NumericInput {...register('courierCharge', { 
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
+                <NumericInput {...register('courierCharge', {
+                  min: { value: 0, message: 'Cannot be negative' }
+                })}
                   className={getInputClass('courierCharge')}
-                  defaultToZero 
+                  defaultToZero
                 />
                 <ErrorMsg error={errors.courierCharge} />
               </div>
@@ -709,8 +724,8 @@ const AddCustomer = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
                 <InputLabel label="Total Amount (₹)" isAuto />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   readOnly
                   value={totalAmount}
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-bold transition-colors"
@@ -718,19 +733,19 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Amount Paid (₹)" required />
-                <NumericInput {...register('amountPaid', { 
-                    required: 'Amount Paid is required',
-                    min: { value: 0, message: 'Cannot be negative' }
-                  })}
+                <NumericInput {...register('amountPaid', {
+                  required: 'Amount Paid is required',
+                  min: { value: 0, message: 'Cannot be negative' }
+                })}
                   className={getInputClass('amountPaid')}
-                  defaultToZero 
+                  defaultToZero
                 />
                 <ErrorMsg error={errors.amountPaid} />
               </div>
               <div>
                 <InputLabel label="Pending Amount (₹)" isAuto />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   readOnly
                   value={pendingAmount}
                   className={`w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-sm font-bold transition-colors cursor-not-allowed ${pendingAmount > 0 ? 'text-red-500' : 'text-green-600'}`}
@@ -745,13 +760,13 @@ const AddCustomer = () => {
               <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold mr-3">4</div>
               <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">Installation Details</h3>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div>
                 <InputLabel label="Installation Person" required />
-                <input 
-                  type="text" 
-                  {...register('installationPerson', { 
+                <input
+                  type="text"
+                  {...register('installationPerson', {
                     required: 'Installation Person is required',
                     pattern: { value: regexPatterns.location, message: 'Only alphabets and spaces allowed' }
                   })}
@@ -763,15 +778,15 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Lead Closure By" required />
-                <select 
-                  {...register('leadClosureBy', { 
+                <select
+                  {...register('leadClosureBy', {
                     required: 'Please select Lead Closure Employee'
                   })}
                   className={getInputClass('leadClosureBy')}
                 >
                   <option value="">Select Employee</option>
                   {activeResources.map(resource => (
-                    <option key={resource.id} value={resource.employeeName}>
+                    <option key={resource.id} value={resource.id}>
                       {resource.employeeName}
                     </option>
                   ))}
@@ -780,10 +795,10 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Installation Date" required />
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   max={getTodayDateString()}
-                  {...register('installationDate', { 
+                  {...register('installationDate', {
                     required: 'Installation Date is required',
                     validate: validatePastDate
                   })}
@@ -794,33 +809,33 @@ const AddCustomer = () => {
               </div>
               <div>
                 <InputLabel label="Validity" required />
-                <select 
+                <select
                   {...register('validity', { required: 'Validity is required' })}
                   className={getInputClass('validity')}
                 >
                   <option value="">Select</option>
-                  <option value="1 Month">1 Month</option>
-                  <option value="3 Months">3 Months</option>
-                  <option value="6 Months">6 Months</option>
-                  <option value="12 Months">12 Months</option>
-                  <option value="13 Months">13 Months</option>
-                  <option value="14 Months">14 Months</option>
-                  <option value="15 Months">15 Months</option>
-                  <option value="24 Months">24 Months</option>
-                  <option value="27 Months">27 Months</option>
-                  <option value="36 Months">36 Months</option>
-                  <option value="48 Months">48 Months</option>
-                  <option value="60 Months">60 Months</option>
+                  <option value="1">1 Month</option>
+                  <option value="3">3 Months</option>
+                  <option value="6">6 Months</option>
+                  <option value="12">12 Months</option>
+                  <option value="13">13 Months</option>
+                  <option value="14">14 Months</option>
+                  <option value="15">15 Months</option>
+                  <option value="24">24 Months</option>
+                  <option value="27">27 Months</option>
+                  <option value="36">36 Months</option>
+                  <option value="48">48 Months</option>
+                  <option value="60">60 Months</option>
                 </select>
                 <ErrorMsg error={errors.validity} />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
                 <InputLabel label="Expiry Date" isAuto />
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   {...register('expiryDate')}
                   readOnly
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm font-semibold transition-colors"
@@ -832,7 +847,7 @@ const AddCustomer = () => {
           {/* Notes */}
           <div className="mb-8">
             <InputLabel label="Notes (Max 500 chars)" />
-            <textarea 
+            <textarea
               {...register('notes', { maxLength: 500 })}
               className={getInputClass('notes') + " min-h-[100px] resize-y"}
             ></textarea>
@@ -843,7 +858,7 @@ const AddCustomer = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 border-t border-gray-100 dark:border-gray-700 pt-6">
-            <button 
+            <button
               type="submit"
               disabled={Object.keys(errors).length > 0}
               className={`w-full sm:w-auto px-10 py-3 rounded text-white font-medium shadow-sm transition-colors text-center ${Object.keys(errors).length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'hover:bg-[#3411b0]'}`}
@@ -851,7 +866,7 @@ const AddCustomer = () => {
             >
               Save Customer/Vehicle
             </button>
-            <button 
+            <button
               type="button"
               onClick={handleReset}
               className="w-full sm:w-auto px-8 py-3 rounded text-gray-800 font-medium shadow-sm transition-colors text-center"

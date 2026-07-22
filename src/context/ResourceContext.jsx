@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const ResourceContext = createContext();
 
@@ -6,6 +6,7 @@ export const useResource = () => useContext(ResourceContext);
 
 export const ResourceProvider = ({ children }) => {
   const [resources, setResources] = useState([]);
+  const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const addResource = async (data) => {
@@ -43,11 +44,37 @@ export const ResourceProvider = ({ children }) => {
   };
 
   const getResource = (id) => {
-    return resources.find(res => res.id === parseInt(id));
+    // return resources.find(res => res.id === parseInt(id));
   };
 
+  const fetchUsers = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch('http://103.235.105.121:3000/api/v1/users', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const userList = Array.isArray(result.data) ? result.data : [];
+        const mappedUsers = userList.map(c => ({
+          id: c.id,
+          employeeName: c.name || '-'
+        }));
+        setUsers(mappedUsers);
+      }
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return (
-    <ResourceContext.Provider value={{ resources, addResource, updateResource, deleteResource, getResource, isLoading }}>
+    <ResourceContext.Provider value={{ resources, users, addResource, updateResource, deleteResource, getResource, isLoading, fetchUsers }}>
       {children}
     </ResourceContext.Provider>
   );
