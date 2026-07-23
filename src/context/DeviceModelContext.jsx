@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 const DeviceModelContext = createContext();
 
@@ -8,8 +9,7 @@ export const useDeviceModel = () => {
 
 
 
-const API_URL =
-  "http://103.235.105.121:3000/api/v1";
+const API_URL = API_BASE_URL;
 
 export const DeviceModelProvider =
   ({ children }) => {

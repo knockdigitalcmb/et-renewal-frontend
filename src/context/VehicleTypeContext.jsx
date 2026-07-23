@@ -4,13 +4,14 @@ import React, {
   useState,
   useEffect,
 } from "react";
+import { API_BASE_URL } from "../config/api";
 
 const VehicleTypeContext = createContext();
 
 export const useVehicleType = () =>
   useContext(VehicleTypeContext);
 
-const API_URL = "http://103.235.105.121:3000/api/v1";
+const API_URL = API_BASE_URL;
 
 export const VehicleTypeProvider = ({
   children,

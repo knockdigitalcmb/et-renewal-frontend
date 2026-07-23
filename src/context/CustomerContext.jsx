@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 const CustomerContext = createContext();
 
@@ -15,7 +16,7 @@ export const CustomerProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("accessToken");
-      const response = await fetch('http://103.235.105.121:3000/api/v1/customers', {
+      const response = await fetch(`${API_BASE_URL}/customers`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -86,7 +87,7 @@ export const CustomerProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("accessToken");
-      const response = await fetch('http://103.235.105.121:3000/api/v1/platforms', {
+      const response = await fetch(`${API_BASE_URL}/platforms`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -112,7 +113,7 @@ export const CustomerProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("accessToken");
-      const response = await fetch('http://103.235.105.121:3000/api/v1/payment-modes', {
+      const response = await fetch(`${API_BASE_URL}/payment-modes`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -144,7 +145,7 @@ export const CustomerProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("accessToken");
-      const response = await fetch(`http://103.235.105.121:3000/api/v1/customers/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -256,7 +257,7 @@ export const CustomerProvider = ({ children }) => {
       };
       const response =
         await fetch(
-          `http://103.235.105.121:3000/api/v1/customers`,
+          `${API_BASE_URL}/customers`,
           {
             method: "POST",
             headers: {

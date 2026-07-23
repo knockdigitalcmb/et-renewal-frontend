@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import { useModal } from '../../context/ModalContext';
+import { API_BASE_URL } from '../../config/api';
 
 const ImportCustomers = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const ImportCustomers = () => {
 
       const token = localStorage.getItem('accessToken');
 
-      const response = await fetch('http://103.235.105.121:3000/api/v1/imports/customers-excel', {
+      const response = await fetch(`${API_BASE_URL}/imports/customers-excel`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

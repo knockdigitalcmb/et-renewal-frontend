@@ -6,6 +6,7 @@ import { useProfile } from '../../context/ProfileContext';
 import { FiUser, FiSettings, FiLogOut } from 'react-icons/fi';
 import GlobalSearch from '../common/GlobalSearch';
 import NotificationBell from './NotificationBell';
+import { API_BASE_URL } from '../../config/api';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -47,7 +48,7 @@ const Header = () => {
       localStorage.getItem("refreshToken");
 
     await fetch(
-      "http://103.235.105.121:3000/api/v1/auth/logout",
+      `${API_BASE_URL}/auth/logout`,
       {
         method: "POST",
         headers: {

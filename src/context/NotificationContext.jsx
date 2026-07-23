@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { FiTool, FiAlertCircle, FiUserPlus, FiDollarSign, FiCheckCircle } from 'react-icons/fi';
 import { supabase } from '../services/supabase';
+import { SERVER_BASE_URL } from '../config/api';
 
 const NotificationContext = createContext();
 
@@ -127,7 +128,9 @@ export const NotificationProvider = ({ children }) => {
     if (dbNotification.link_description === 'customer') {
       link = '/customers';
     } else if (dbNotification.link_description === 'customer import') {
-      link = "http://103.235.105.121:3000/uploads/errors/" + dbNotification.link;
+      console.log(dbNotification.link);
+      const fileName = dbNotification.link ? dbNotification.link.split(/[/\\]/).pop() : '';
+      link = `${SERVER_BASE_URL}/uploads/errors/${fileName}`;
     }
 
     const timeStr = dbNotification.created_at

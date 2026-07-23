@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 const ResourceContext = createContext();
 
@@ -51,7 +52,7 @@ export const ResourceProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("accessToken");
-      const response = await fetch('http://103.235.105.121:3000/api/v1/users', {
+      const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`

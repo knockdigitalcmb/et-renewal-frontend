@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { API_BASE_URL } from '../../config/api';
 
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -15,7 +16,7 @@ const ProtectedRoute = ({ children }) => {
       }
 
       try {
-        const response = await fetch('http://103.235.105.121:3000/api/v1/auth/check', {
+        const response = await fetch(`${API_BASE_URL}/auth/check`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
