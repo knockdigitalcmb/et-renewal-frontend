@@ -9,6 +9,8 @@ export const CustomerProvider = ({ children }) => {
   const [customers, setCustomers] = useState([]);
   const [platform, setPlatform] = useState([]);
   const [paymentMode, setPaymentMode] = useState([]);
+  const [deviceModels, setDeviceModels] = useState([]);
+  const [userAll, setUserAll] = useState([]);
   const [renewals, setRenewals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -87,7 +89,7 @@ export const CustomerProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("accessToken");
-      const response = await fetch(`${API_BASE_URL}/platforms`, {
+      const response = await fetch(`${API_BASE_URL}/platforms/all`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -113,7 +115,7 @@ export const CustomerProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("accessToken");
-      const response = await fetch(`${API_BASE_URL}/payment-modes`, {
+      const response = await fetch(`${API_BASE_URL}/payment-modes/all`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -135,11 +137,68 @@ export const CustomerProvider = ({ children }) => {
     }
   }, []);
 
+  const fetchDeviceModels = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${API_BASE_URL}/device-models/all`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const deviceList = Array.isArray(result.data) ? result.data : [];
+        const mappedDeviceModels = deviceList.map(c => ({
+          id: c.id,
+          name: c.model_name || '-'
+        }));
+        // console.log("mappedDeviceModels:", mappedDeviceModels);
+        setDeviceModels(mappedDeviceModels);
+      }
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchUserAll = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${API_BASE_URL}/users/all`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const userList = Array.isArray(result.data) ? result.data : [];
+        const mappedUserAll = userList.map(c => ({
+          id: c.id,
+          employeeName: c.name || '-'
+        }));
+        setUserAll(mappedUserAll);
+      }
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+
+
   useEffect(() => {
     fetchCustomers();
     fetchPlatform();
     fetchPaymentMode();
-  }, [fetchCustomers, fetchPlatform, fetchPaymentMode]);
+    fetchDeviceModels();
+    fetchUserAll();
+  }, [fetchCustomers, fetchPlatform, fetchPaymentMode, fetchDeviceModels, fetchUserAll]);
 
   const getCustomerById = useCallback(async (id) => {
     try {
@@ -450,6 +509,8 @@ export const CustomerProvider = ({ children }) => {
       customers,
       platform,
       paymentMode,
+      deviceModels,
+      userAll,
       renewals,
       addCustomer,
       updateCustomer,

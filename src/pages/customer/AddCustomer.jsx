@@ -18,15 +18,17 @@ import {
 const AddCustomer = () => {
   const navigate = useNavigate();
   const { showModal } = useModal();
-  const { addCustomer, addVehicle, updateCustomer, customers, checkDuplicateVehicle, platform, paymentMode } = useCustomer();
+  const { addCustomer, addVehicle, updateCustomer, customers, checkDuplicateVehicle, platform, paymentMode, deviceModels, userAll } = useCustomer();
   const { users, fetchUsers } = useResource();
   const { vehicleTypes } = useVehicleType();
-  const { deviceModels } = useDeviceModel();
+  // const { deviceModels } = useDeviceModel();
   const { imeis } = useImei();
   const { sims } = useSim();
 
-  const activeDeviceModels = deviceModels.filter(m => m.status === 'Active');
-  const activeResources = users || [];
+  // const activeDeviceModels = deviceModels.filter(m => m.status === 'Active');  
+  const activeDeviceModels = deviceModels || [];
+
+  const activeResources = userAll || [];
   const activePlatform = platform || [];
   const activePaymentMode = paymentMode || [];
   const activeVehicleTypes = vehicleTypes.filter(vt => vt.status === 'Active');
