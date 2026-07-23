@@ -128,7 +128,7 @@ export const NotificationProvider = ({ children }) => {
     if (dbNotification.link_description === 'customer') {
       link = '/customers';
     } else if (dbNotification.link_description === 'customer import') {
-      console.log(dbNotification.link);
+      // console.log(dbNotification.link);
       const fileName = dbNotification.link ? dbNotification.link.split(/[/\\]/).pop() : '';
       link = `${SERVER_BASE_URL}/uploads/errors/${fileName}`;
     }
